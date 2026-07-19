@@ -135,7 +135,7 @@
             </div>
         </div>
 
-        <!-- নতুন ফিচার: ব্যবহারভিত্তিক প্রোগ্রেস বার ও রিমেইনিং ইউনিট -->
+        <!-- ব্যবহারভিত্তিক প্রোগ্রেস বার ও রিমেইনিং ইউনিট -->
         <div class="progress-container">
             <div class="progress-labels">
                 <span id="remainingUnits">Remaining: 0.00 kWh</span>
@@ -169,6 +169,7 @@
         const db = firebase.database();
         let currentFirebaseRef = null;
 
+        // ইনিশিয়াল লোড চেক
         const urlParams = new URLSearchParams(window.location.search);
         let initialRoom = urlParams.get('room');
         
@@ -178,8 +179,9 @@
             document.getElementById('homeScreen').style.display = 'block';
         }
 
+        // রুম সিলেক্ট করলে হিস্ট্রিতে পুশ হবে
         function selectRoom(roomName) {
-            window.history.pushState({}, '', '?room=' + roomName);
+            window.history.pushState({room: roomName}, '', '?room=' + roomName);
             loadRoomDashboard(roomName);
         }
 
@@ -200,13 +202,11 @@
                     const voltage = data.voltage ? parseFloat(data.voltage) : 0;
                     const roomStatus = data.status || "OFF";
 
-                    // ১. বেসিক মেট্রিকে ডেটা সেট
                     document.getElementById('allocUnits').innerText = allocated.toFixed(2) + " kWh";
                     document.getElementById('currUnits').innerText = current.toFixed(2) + " kWh";
                     document.getElementById('livePower').innerText = power.toFixed(1) + " W";
                     document.getElementById('voltage').innerText = voltage.toFixed(1) + " V";
                     
-                    // ২. নতুন ফিচার: প্রোগ্রেস বার ও রিমেইনিং ইউনিট লজিক
                     let percentage = allocated > 0 ? (current / allocated) * 100 : 0;
                     if (percentage > 100) percentage = 100;
                     
@@ -217,7 +217,6 @@
                     const pBar = document.getElementById('progressBar');
                     pBar.style.width = percentage + "%";
 
-                    // লিমিট অনুযায়ী প্রোগ্রেস বারের কালার পরিবর্তন
                     if(percentage >= 90) {
                         pBar.style.background = 'var(--danger)';
                     } else if(percentage >= 70) {
@@ -226,7 +225,6 @@
                         pBar.style.background = 'linear-gradient(90deg, #3498db, #2ecc71)';
                     }
 
-                    // ৩. ৫-সেকেন্ড একটানা এক্সপায়ার ওয়ার্নিং ব্যানার লজিক
                     const alertBanner = document.getElementById('alertBanner');
                     if(current > allocated && roomStatus.includes("ON")) {
                         alertBanner.style.display = 'block';
@@ -234,7 +232,6 @@
                         alertBanner.style.display = 'none';
                     }
 
-                    // ৪. স্ট্যাটাস বক্স কালার ফিক্সিং
                     const statusBox = document.getElementById('statusBox');
                     if(roomStatus.includes("ON")) {
                         statusBox.innerHTML = `<i class="fa-solid fa-circle-check"></i> STATUS: ${roomStatus}`;
@@ -247,12 +244,27 @@
             });
         }
 
+        // স্ক্রিনের ব্যাক বাটন দিয়ে হোম পেজে ফেরা
         function goBack() {
             if (currentFirebaseRef) currentFirebaseRef.off();
             window.history.pushState({}, '', window.location.pathname);
             document.getElementById('dashboardCard').style.display = 'none';
             document.getElementById('homeScreen').style.display = 'block';
         }
+
+        // ফোনের ফিজিক্যাল ব্যাক বাটন ও ব্যাক স্লাইড জেসচার হ্যান্ডলার
+        window.addEventListener('popstate', function(event) {
+            const params = new URLSearchParams(window.location.search);
+            let currentRoom = params.get('room');
+            
+            if (currentRoom === 'room1' || currentRoom === 'room2') {
+                loadRoomDashboard(currentRoom);
+            } else {
+                if (currentFirebaseRef) currentFirebaseRef.off();
+                document.getElementById('dashboardCard').style.display = 'none';
+                document.getElementById('homeScreen').style.display = 'block';
+            }
+        });
     </script>
 </body>
 </html>
