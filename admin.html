@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hall Power Controller Panel - Secure Login</title>
+    <title>Advanced Hall Power Control Center</title>
     <!-- Firebase Compatibility Libraries -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <!-- FontAwesome for Icons -->
+    <!-- FontAwesome & Chart.js -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
         :root {
@@ -27,12 +28,9 @@
             margin: 0; 
             padding: 30px; 
             min-height: 95vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
         }
 
-        .main-container { max-width: 1100px; margin: 0 auto; width: 100%; }
+        .main-container { max-width: 1200px; margin: 0 auto; width: 100%; }
         
         h1 { 
             text-align: center; 
@@ -45,193 +43,174 @@
         }
         .subtitle { text-align: center; color: #94a3b8; font-size: 14px; margin-bottom: 35px; }
 
-        /* লগইন স্ক্রিন স্টাইল */
-        .login-card {
+        /* গ্লাস কার্ড ও লগইন */
+        .login-card, .panel-card {
             background: rgba(255, 255, 255, 0.06); 
             backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            max-width: 400px;
-            width: 90%;
-            margin: 0 auto;
-            padding: 35px 25px;
             border-radius: 20px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-            text-align: center;
+            padding: 30px;
+            margin-bottom: 30px;
         }
-        .login-input {
-            width: 100%;
-            background: rgba(0, 0, 0, 0.25);
-            border: 1px solid rgba(255,255,255,0.1);
-            padding: 12px;
-            margin-bottom: 15px;
-            border-radius: 8px;
-            color: #fff;
-            font-size: 15px;
-            outline: none;
-            box-sizing: border-box;
-        }
-        .login-input:focus { border-color: var(--primary); }
+        .login-card { max-width: 400px; margin: 80px auto; text-align: center; }
+        .login-input { width: 100%; background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255,255,255,0.1); padding: 12px; margin-bottom: 15px; border-radius: 8px; color: #fff; box-sizing: border-box; }
         .error-msg { color: var(--danger); font-size: 13px; margin-top: 10px; display: none; font-weight: 600; }
 
-        /* গ্লোবাল অ্যানালিটিক্স ওভারভিউ কার্ড */
-        .overview-card {
-            background: rgba(255, 255, 255, 0.04);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 30px;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-            text-align: center;
-        }
-        .overview-item h3 { margin: 0; font-size: 13px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
-        .overview-item div { font-size: 24px; font-weight: 700; margin-top: 5px; color: #fff; }
+        /* অ্যানালিটিক্স ও লেআউট গ্রিড */
+        .overview-card { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; text-align: center; margin-bottom: 30px; }
+        .overview-item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 20px; border-radius: 14px; }
+        .overview-item h3 { margin: 0; font-size: 12px; color: #94a3b8; text-transform: uppercase; }
+        .overview-item div { font-size: 26px; font-weight: 700; margin-top: 5px; color: #fff; }
 
-        /* রুম গ্রিড লেআউট */
-        .rooms-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        .dashboard-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 30px; margin-bottom: 30px; }
+        .rooms-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         
-        @media (max-width: 768px) {
-            .rooms-grid { grid-template-columns: 1fr; }
-            .overview-card { grid-template-columns: 1fr; gap: 15px; }
+        @media (max-width: 992px) {
+            .dashboard-grid { grid-template-columns: 1fr; }
+            .overview-card { grid-template-columns: 1fr; }
         }
 
-        /* রুম কার্ড ডিজাইন */
-        .room-card { 
-            background: rgba(255, 255, 255, 0.06); 
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 25px; 
-            border-radius: 20px; 
-            box-shadow: 0 15px 35px rgba(0,0,0,0.2); 
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .room-card:hover { transform: translateY(-5px); box-shadow: 0 20px 45px rgba(0,0,0,0.3); }
-        .room-card.alert-active { border: 1.5px solid rgba(231, 76, 60, 0.5); background: rgba(231, 76, 60, 0.03); }
+        /* রুম ও কন্ট্রোল এলিমেন্ট */
+        .room-card { background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); padding: 20px; border-radius: 16px; }
+        .room-card.alert-active { border: 1.5px solid rgba(231, 76, 60, 0.5); }
+        h2 { margin: 0 0 15px 0; font-size: 20px; display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
+        
+        .data-line { display: flex; justify-content: space-between; margin: 10px 0; font-size: 15px; }
+        .data-line span:first-child { color: #94a3b8; }
+        .badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .badge.ON { background: rgba(46, 204, 113, 0.2); color: var(--success); }
+        .badge.OFF { background: rgba(231, 76, 60, 0.2); color: var(--danger); }
 
-        h2 { margin: 0 0 20px 0; font-size: 22px; color: #fff; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; }
-        h2.login-title { border: none; padding: 0; margin-bottom: 25px; justify-content: center; gap: 10px; }
+        .controls-box { background: rgba(0,0,0,0.15); padding: 15px; border-radius: 12px; margin-top: 15px; }
+        .input-group { display: flex; gap: 8px; margin-bottom: 10px; }
+        input[type="number"] { flex: 1; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255,255,255,0.1); padding: 10px; border-radius: 6px; color: #fff; font-weight: bold; outline: none; }
         
-        .data-line { display: flex; justify-content: space-between; margin: 14px 0; font-size: 16px; align-items: center; }
-        .data-line span:first-child { color: #94a3b8; display: flex; align-items: center; gap: 10px; }
-        .data-line span:last-child { font-weight: 700; color: #fff; }
+        /* বাটনমূহ */
+        button { font-family: inherit; font-weight: 600; border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .btn-update { background: var(--primary); color: white; padding: 0 15px; }
+        .btn-quick { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #cbd5e1; padding: 5px; font-size: 11px; flex: 1; }
+        .btn-cutoff { background: rgba(231, 76, 60, 0.15); color: var(--danger); border: 1px solid rgba(231, 76, 60, 0.3); width: 100%; padding: 10px; }
+        .btn-cutoff:hover { background: var(--danger); color: white; }
+        .btn-restore { background: rgba(46, 204, 113, 0.15); color: var(--success); border: 1px solid rgba(46, 204, 113, 0.3); width: 100%; padding: 10px; }
+        .btn-restore:hover { background: var(--success); color: white; }
+        .btn-logout { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #94a3b8; padding: 6px 12px; font-size: 12px; margin-bottom: 20px; }
+        .btn-reset-system { background: rgba(231, 76, 60, 0.2); color: #fff; border: 1px solid var(--danger); padding: 12px 25px; margin: 0 auto; display: flex; border-radius: 10px; font-size: 14px; }
+        .btn-reset-system:hover { background: var(--danger); box-shadow: 0 0 15px rgba(231, 76, 60, 0.4); }
 
-        .badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
-        .badge.ON { background: rgba(46, 204, 113, 0.2); color: var(--success); border: 1px solid rgba(46, 204, 113, 0.4); }
-        .badge.OFF { background: rgba(231, 76, 60, 0.2); color: var(--danger); border: 1px solid rgba(231, 76, 60, 0.4); }
-
-        .controls-box { background: rgba(255, 255, 255, 0.03); padding: 18px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.05); margin-top: 25px; }
-        .controls-box label { font-size: 12px; color: #94a3b8; display: block; margin-bottom: 8px; font-weight: 600; text-align: left; }
-        
-        .input-group { display: flex; gap: 10px; margin-bottom: 12px; }
-        input[type="number"] { flex: 1; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; color: #fff; font-size: 15px; font-weight: bold; outline: none; }
-        input[type="number"]:focus { border-color: var(--primary); }
-        
-        button { font-family: inherit; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        
-        .btn-update { background: var(--primary); color: white; padding: 0 20px; font-size: 14px; }
-        .btn-update:hover { background: #2980b9; transform: scale(1.02); }
-        
-        .quick-actions { display: flex; gap: 8px; margin-bottom: 18px; }
-        .btn-quick { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #cbd5e1; padding: 6px 12px; font-size: 12px; flex: 1; }
-        .btn-quick:hover { background: rgba(255,255,255,0.15); color: #fff; }
-
-        .btn-cutoff { background: rgba(231, 76, 60, 0.15); color: var(--danger); border: 1px solid rgba(231, 76, 60, 0.4); width: 100%; padding: 12px; font-size: 14px; border-radius: 10px; }
-        .btn-cutoff:hover { background: var(--danger); color: white; box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3); }
-        
-        .btn-restore { background: rgba(46, 204, 113, 0.15); color: var(--success); border: 1px solid rgba(46, 204, 113, 0.4); width: 100%; padding: 12px; font-size: 14px; border-radius: 10px; }
-        .btn-restore:hover { background: var(--success); color: white; box-shadow: 0 5px 15px rgba(46, 204, 113, 0.3); }
-
-        .btn-logout { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #94a3b8; padding: 6px 14px; font-size: 12px; font-weight: 600; border-radius: 6px; margin: 0 auto 20px auto; }
-        .btn-logout:hover { color: #fff; border-color: #fff; background: rgba(255,255,255,0.05); }
+        /* টেবিল স্টাইল */
+        .table-wrapper { overflow-x: auto; margin-top: 15px; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+        th, td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+        th { color: #94a3b8; font-weight: 600; text-transform: uppercase; font-size: 12px; }
+        tr:hover { background: rgba(255,255,255,0.02); }
     </style>
 </head>
 <body>
 
-    <!-- ১. সুরক্ষিত এডমিন লগইন গেটওয়ে -->
+    <!-- ১. লগইন স্ক্রিন গেটওয়ে -->
     <div id="loginScreen" class="login-card">
-        <h2 class="login-title"><i class="fa-solid fa-shield-halved" style="color: var(--primary);"></i> Admin Gateway</h2>
-        <div class="controls-box" style="background: transparent; border: none; margin: 0; padding: 0;">
-            <input type="email" id="loginEmail" class="login-input" placeholder="Admin Email Address">
-            <input type="password" id="loginPassword" class="login-input" placeholder="Enter Account Password">
-            <button class="btn-restore" onclick="handleLogin()" style="width: 100%; padding: 12px; font-size: 15px;"><i class="fa-solid fa-right-to-bracket"></i> Secure Sign In</button>
+        <h2><i class="fa-solid fa-shield-halved" style="color: var(--primary);"></i> Admin Gateway</h2>
+        <div style="margin-top: 20px;">
+            <input type="email" id="loginEmail" class="login-input" placeholder="Admin Email">
+            <input type="password" id="loginPassword" class="login-input" placeholder="Password">
+            <button class="btn-restore" onclick="handleLogin()" style="width: 100%; padding: 12px;"><i class="fa-solid fa-right-to-bracket"></i> Sign In</button>
             <p id="loginError" class="error-msg"></p>
         </div>
     </div>
 
-    <!-- ২. মূল ড্যাশবোর্ড কন্টেইনার (শুরুতে হাইড থাকবে) -->
+    <!-- ২. মূল এডমিন ড্যাশবোর্ড কন্টেইনার -->
     <div class="main-container" id="adminDashboard" style="display: none;">
-        <button class="btn-logout" onclick="handleLogout()"><i class="fa-solid fa-power-off"></i> Logout Session</button>
-        <h1><i class="fa-solid fa-gauge-high"></i> Hall Power Control Center</h1>
-        <div class="subtitle">Central Command Panel for Load Allocation & Dispatch</div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <button class="btn-logout" onclick="handleLogout()"><i class="fa-solid fa-power-off"></i> Logout</button>
+            <button class="btn-reset-system" onclick="masterSystemReset()"><i class="fa-solid fa-triangle-exclamation"></i> Master System Reset</button>
+        </div>
+        
+        <h1><i class="fa-solid fa-gauge-high"></i> Hall Command Center</h1>
+        <div class="subtitle">Real-time Telemetry, Allocation Logs & Grid Control</div>
 
-        <!-- মাস্টার অ্যানালিটিক্স ড্যাশবোর্ড -->
+        <!-- মাস্টার অ্যানালিটিক্স -->
         <div class="overview-card">
-            <div class="overview-item">
-                <h3>Total Channels</h3>
-                <div>02 Rooms</div>
+            <div class="overview-item"><h3>Active Grid Nodes</h3><div id="active-rooms-count">0 Rooms</div></div>
+            <div class="overview-item"><h3>Total Active Load</h3><div id="total-hall-power">0.0 W</div></div>
+            <div class="overview-item"><h3>Total Logged Transactions</h3><div id="total-logs">0</div></div>
+        </div>
+
+        <div class="dashboard-grid">
+            <!-- বাম কলাম: রুম সমূহের গ্রিড -->
+            <div class="rooms-grid">
+                <!-- ROOM 01 -->
+                <div class="room-card" id="card-room1">
+                    <h2><span>Room 01</span> <span id="badge-room1" class="badge ON">ON</span></h2>
+                    <div class="data-line"><span>Current Used:</span><span id="curr-room1">0.00 kWh</span></div>
+                    <div class="data-line"><span>Allocated Limit:</span><span id="alloc-room1">0.00 kWh</span></div>
+                    <div class="data-line"><span>Live Load:</span><span id="power-room1">0 W</span></div>
+                    <div class="data-line"><span>Voltage:</span><span id="v-room1">0 V</span></div>
+                    <div class="controls-box">
+                        <div class="input-group">
+                            <input type="number" id="input-room1" step="0.5" placeholder="Units">
+                            <button class="btn-update" onclick="updateLimit('room1')"><i class="fa-solid fa-floppy-disk"></i></button>
+                        </div>
+                        <div class="quick-actions" style="display:flex; gap:5px; margin-bottom:10px;">
+                            <button class="btn-quick" onclick="quickAdd('room1', 5)">+5</button>
+                            <button class="btn-quick" onclick="quickAdd('room1', 10)">+10</button>
+                        </div>
+                        <button id="btn-cut-room1" class="btn-cutoff" onclick="toggleCutoff('room1', true)"><i class="fa-solid fa-power-off"></i> Shutdown</button>
+                    </div>
+                </div>
+
+                <!-- ROOM 02 -->
+                <div class="room-card" id="card-room2">
+                    <h2><span>Room 02</span> <span id="badge-room2" class="badge ON">ON</span></h2>
+                    <div class="data-line"><span>Current Used:</span><span id="curr-room2">0.00 kWh</span></div>
+                    <div class="data-line"><span>Allocated Limit:</span><span id="alloc-room2">0.00 kWh</span></div>
+                    <div class="data-line"><span>Live Load:</span><span id="power-room2">0 W</span></div>
+                    <div class="data-line"><span>Voltage:</span><span id="v-room2">0 V</span></div>
+                    <div class="controls-box">
+                        <div class="input-group">
+                            <input type="number" id="input-room2" step="0.5" placeholder="Units">
+                            <button class="btn-update" onclick="updateLimit('room2')"><i class="fa-solid fa-floppy-disk"></i></button>
+                        </div>
+                        <div class="quick-actions" style="display:flex; gap:5px; margin-bottom:10px;">
+                            <button class="btn-quick" onclick="quickAdd('room2', 5)">+5</button>
+                            <button class="btn-quick" onclick="quickAdd('room2', 10)">+10</button>
+                        </div>
+                        <button id="btn-cut-room2" class="btn-cutoff" onclick="toggleCutoff('room2', true)"><i class="fa-solid fa-power-off"></i> Shutdown</button>
+                    </div>
+                </div>
             </div>
-            <div class="overview-item">
-                <h3>Active Grid</h3>
-                <div id="active-rooms-count">0 Rooms</div>
-            </div>
-            <div class="overview-item">
-                <h3>Total Active Load</h3>
-                <div id="total-hall-power">0.0 W</div>
+
+            <!-- ডান কলাম: লাইভ ভিজ্যুয়াল গ্রাফ চার্ট -->
+            <div class="room-card" style="display: flex; flex-direction: column; justify-content: center;">
+                <h3 style="margin-top:0; color:#94a3b8; font-size:14px; text-transform:uppercase;"><i class="fa-solid fa-chart-bar"></i> Live Consumption (kWh)</h3>
+                <div style="position: relative; height:240px; width:100%;">
+                    <canvas id="liveChart"></canvas>
+                </div>
             </div>
         </div>
 
-        <div class="rooms-grid">
-            <!-- ROOM 01 CONTROL CARD -->
-            <div class="room-card" id="card-room1">
-                <h2><span><i class="fa-solid fa-door-open"></i> Room 01</span> <span id="badge-room1" class="badge ON">ON</span></h2>
-                <div class="data-line"><span><i class="fa-solid fa-chart-line"></i> Current Used:</span><span id="curr-room1">0.00 kWh</span></div>
-                <div class="data-line"><span><i class="fa-solid fa-circle-minus"></i> Allocated Limit:</span><span id="alloc-room1">0.00 kWh</span></div>
-                <div class="data-line"><span><i class="fa-solid fa-plug"></i> Live Load:</span><span id="power-room1">0 W</span></div>
-                <div class="data-line"><span><i class="fa-solid fa-bolt"></i> Voltage:</span><span id="v-room1">0 V</span></div>
-                
-                <div class="controls-box">
-                    <label>Set Target Limit (kWh)</label>
-                    <div class="input-group">
-                        <input type="number" id="input-room1" step="0.5" placeholder="Enter Units">
-                        <button class="btn-update" onclick="updateLimit('room1')"><i class="fa-solid fa-floppy-disk"></i></button>
-                    </div>
-                    <div class="quick-actions">
-                        <button class="btn-quick" onclick="quickAdd('room1', 5)">+5 kWh</button>
-                        <button class="btn-quick" onclick="quickAdd('room1', 10)">+10 kWh</button>
-                    </div>
-                    <button id="btn-cut-room1" class="btn-cutoff" onclick="toggleCutoff('room1', true)"><i class="fa-solid fa-power-off"></i> Emergency Shutdown</button>
-                </div>
-            </div>
-
-            <!-- ROOM 02 CONTROL CARD -->
-            <div class="room-card" id="card-room2">
-                <h2><span><i class="fa-solid fa-door-open"></i> Room 02</span> <span id="badge-room2" class="badge ON">ON</span></h2>
-                <div class="data-line"><span><i class="fa-solid fa-chart-line"></i> Current Used:</span><span id="curr-room2">0.00 kWh</span></div>
-                <div class="data-line"><span><i class="fa-solid fa-circle-minus"></i> Allocated Limit:</span><span id="alloc-room2">0.00 kWh</span></div>
-                <div class="data-line"><span><i class="fa-solid fa-plug"></i> Live Load:</span><span id="power-room2">0 W</span></div>
-                <div class="data-line"><span><i class="fa-solid fa-bolt"></i> Voltage:</span><span id="v-room2">0 V</span></div>
-                
-                <div class="controls-box">
-                    <label>Set Target Limit (kWh)</label>
-                    <div class="input-group">
-                        <input type="number" id="input-room2" step="0.5" placeholder="Enter Units">
-                        <button class="btn-update" onclick="updateLimit('room2')"><i class="fa-solid fa-floppy-disk"></i></button>
-                    </div>
-                    <div class="quick-actions">
-                        <button class="btn-quick" onclick="quickAdd('room2', 5)">+5 kWh</button>
-                        <button class="btn-quick" onclick="quickAdd('room2', 10)">+10 kWh</button>
-                    </div>
-                    <button id="btn-cut-room2" class="btn-cutoff" onclick="toggleCutoff('room2', true)"><i class="fa-solid fa-power-off"></i> Emergency Shutdown</button>
-                </div>
+        <!-- নিচে: এলোকেশন হিস্ট্রি ও ট্র্যাকিং টেবিল -->
+        <div class="panel-card">
+            <h3 style="margin-top: 0; font-size: 16px;"><i class="fa-solid fa-clock-history"></i> Allocation History Log</h3>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Target Node</th>
+                            <th>Action Type</th>
+                            <th>Units Allocated</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logTableBody">
+                        <!-- জাভাস্ক্রিপ্ট দিয়ে ফায়ারবেস থেকে লগ এখানে লোড হবে -->
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 
     <script>
-        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyC8NcbOPzhbUnm9NxOZyzdEJSLk_LOGYcc",
             authDomain: "irza-labs.firebaseapp.com",
@@ -245,52 +224,57 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        let roomData = { room1: { power: 0, status: "OFF" }, room2: { power: 0, status: "OFF" } };
+        let roomData = { room1: { power:0, status:"OFF", current:0, allocated:0 }, room2: { power:0, status:"OFF", current:0, allocated:0 } };
+        let consumptionChart;
 
-        // ১. ফায়ারবেস অথেনটিকেশন লগইন লজিক
+        // Chart.js গ্রাফ ইনিশিয়ালাইজেশন
+        void function initChart() {
+            const ctx = document.getElementById('liveChart').getContext('2d');
+            consumptionChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Room 01', 'Room 02'],
+                    datasets: [{
+                        label: 'Used Units (kWh)',
+                        data: [0, 0],
+                        backgroundColor: ['rgba(52, 152, 219, 0.6)', 'rgba(168, 85, 247, 0.6)'],
+                        borderColor: ['#3498db', '#a855f7'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } }, x: { ticks: { color: '#94a3b8' } } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }();
+
         function handleLogin() {
             const email = document.getElementById('loginEmail').value;
             const pass = document.getElementById('loginPassword').value;
             const errorText = document.getElementById('loginError');
 
-            if(!email || !pass) {
-                errorText.innerText = "Please enter both Email and Password!";
-                errorText.style.display = 'block';
-                return;
-            }
-
             firebase.auth().signInWithEmailAndPassword(email, pass)
-                .then((userCredential) => {
-                    errorText.style.display = 'none';
+                .then(() => {
                     document.getElementById('loginScreen').style.display = 'none';
                     document.getElementById('adminDashboard').style.display = 'block';
-                    
-                    // সফল লগইনের পর রিয়েল-টাইম ডাটাবেস লিসেনার একটিভ হবে
                     listenToRoom('room1');
                     listenToRoom('room2');
-                })
-                .catch((error) => {
-                    errorText.innerText = "Access Denied: Invalid Admin Credentials!";
+                    listenToLogs(); // লগ ট্র্যাকিং অন করা
+                }).catch(() => {
+                    errorText.innerText = "Invalid Credentials!";
                     errorText.style.display = 'block';
                 });
         }
 
-        // ২. লগআউট লজিক
         function handleLogout() {
             firebase.auth().signOut().then(() => {
-                // লিসেনার অফ করা
-                db.ref('rooms/room1').off();
-                db.ref('rooms/room2').off();
-                
-                // স্ক্রিন রিভার্স টগল করা
-                document.getElementById('adminDashboard').style.display = 'none';
-                document.getElementById('loginScreen').style.display = 'block';
-                document.getElementById('loginEmail').value = '';
-                document.getElementById('loginPassword').value = '';
+                location.reload();
             });
         }
 
-        // ৩. রিয়েল-টাইম ডাটাবেস লিসেনার
         function listenToRoom(roomName) {
             db.ref('rooms/' + roomName).on('value', (snapshot) => {
                 const data = snapshot.val();
@@ -299,9 +283,14 @@
                 roomData[roomName].power = data.power ? parseFloat(data.power) : 0;
                 roomData[roomName].status = data.status || "OFF";
                 roomData[roomName].allocated = data.allocated_units ? parseFloat(data.allocated_units) : 0;
+                roomData[roomName].current = data.current_units ? parseFloat(data.current_units) : 0;
+                
+                // গ্রাফ চার্ট ডেটা লাইভ আপডেট
+                consumptionChart.data.datasets[0].data = [roomData.room1.current, roomData.room2.current];
+                consumptionChart.update();
                 updateGlobalMetrics();
 
-                document.getElementById(`curr-${roomName}`).innerText = (data.current_units ? parseFloat(data.current_units).toFixed(2) : "0.00") + " kWh";
+                document.getElementById(`curr-${roomName}`).innerText = roomData[roomName].current.toFixed(2) + " kWh";
                 document.getElementById(`alloc-${roomName}`).innerText = roomData[roomName].allocated.toFixed(2) + " kWh";
                 document.getElementById(`power-${roomName}`).innerText = roomData[roomName].power.toFixed(1) + " W";
                 document.getElementById(`v-${roomName}`).innerText = (data.voltage ? parseFloat(data.voltage).toFixed(1) : "0.0") + " V";
@@ -309,36 +298,64 @@
                 const badge = document.getElementById(`badge-${roomName}`);
                 const cutBtn = document.getElementById(`btn-cut-${roomName}`);
                 const card = document.getElementById(`card-${roomName}`);
-
                 badge.innerText = data.status || "OFF";
 
                 if(data.manual_cutoff === true) {
                     badge.className = "badge OFF";
-                    cutBtn.innerHTML = `<i class="fa-solid fa-plug-circle-check"></i> Restore Power`;
+                    cutBtn.innerHTML = `Restore Power`;
                     cutBtn.className = "btn-restore";
                     cutBtn.onclick = () => toggleCutoff(roomName, false);
                     card.classList.add('alert-active');
                 } else {
-                    if(roomData[roomName].status.includes("ON")) {
-                        badge.className = "badge ON";
-                        card.classList.remove('alert-active');
-                    } else {
-                        badge.className = "badge OFF";
-                        card.classList.add('alert-active');
-                    }
-                    cutBtn.innerHTML = `<i class="fa-solid fa-power-off"></i> Emergency Shutdown`;
+                    badge.className = roomData[roomName].status.includes("ON") ? "badge ON" : "badge OFF";
+                    if(roomData[roomName].status.includes("ON")) card.classList.remove('alert-active');
+                    else card.classList.add('alert-active');
+                    
+                    cutBtn.innerHTML = `Shutdown`;
                     cutBtn.className = "btn-cutoff";
                     cutBtn.onclick = () => toggleCutoff(roomName, true);
                 }
             });
         }
 
+        // হিস্ট্রি লগ ফায়ারবেস থেকে রিড করা ও টেবিল সাজানো
+        function listenToLogs() {
+            db.ref('allocation_logs').orderByChild('timestamp').limitToLast(10).on('value', (snapshot) => {
+                const tbody = document.getElementById('logTableBody');
+                tbody.innerHTML = "";
+                let logCount = 0;
+                
+                snapshot.forEach((childSnapshot) => {
+                    logCount++;
+                    const log = childSnapshot.val();
+                    const row = `<tr>
+                        <td>${log.time}</td>
+                        <td style="text-transform:uppercase; font-weight:bold; color:var(--primary);">${log.room}</td>
+                        <td>${log.type}</td>
+                        <td style="font-weight:bold; color:var(--success);">${parseFloat(log.units).toFixed(2)} kWh</td>
+                    </tr>`;
+                    tbody.insertAdjacentHTML('afterbegin', row); // লেটেস্ট লগ উপরে দেখাবে
+                });
+                document.getElementById('total-logs').innerText = logCount;
+            });
+        }
+
+        // লগ মেমোরিতে রাইট করার ফাংশন
+        function writeLog(roomName, type, units) {
+            const now = new Date();
+            const timeString = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+            db.ref('allocation_logs').push({
+                timestamp: firebase.database.ServerValue.TIMESTAMP,
+                time: timeString,
+                room: roomName,
+                type: type,
+                units: units
+            });
+        }
+
         function updateGlobalMetrics() {
             let totalPower = roomData.room1.power + roomData.room2.power;
-            let activeCount = 0;
-            if (roomData.room1.status.includes("ON")) activeCount++;
-            if (roomData.room2.status.includes("ON")) activeCount++;
-
+            let activeCount = (roomData.room1.status.includes("ON") ? 1 : 0) + (roomData.room2.status.includes("ON") ? 1 : 0);
             document.getElementById('active-rooms-count').innerText = activeCount + " Active";
             document.getElementById('total-hall-power').innerText = totalPower.toFixed(1) + " W";
         }
@@ -347,6 +364,7 @@
             const val = parseFloat(document.getElementById(`input-${roomName}`).value);
             if(!isNaN(val) && val >= 0) {
                 db.ref('rooms/' + roomName).update({ allocated_units: val });
+                writeLog(roomName, "Manual Input Set", val);
                 document.getElementById(`input-${roomName}`).value = '';
             }
         }
@@ -355,10 +373,26 @@
             let currentAllocated = roomData[roomName].allocated || 0;
             let newLimit = currentAllocated + amount;
             db.ref('rooms/' + roomName).update({ allocated_units: newLimit });
+            writeLog(roomName, "Quick Action Add", amount);
         }
 
         function toggleCutoff(roomName, status) {
             db.ref('rooms/' + roomName).update({ manual_cutoff: status });
+            writeLog(roomName, status ? "Emergency Cutoff" : "Power Restored", 0);
+        }
+
+        // ⚠️ মাস্টার সিস্টেম রিসেট ফাংশন (সব ডেটা ক্লিন করার জন্য)
+        function masterSystemReset() {
+            if(confirm("Warning! Are you sure you want to completely RESET all consumption data & history logs?")) {
+                // ১. উভয় রুমের ব্যবহৃত ইউনিট জিরো করা ও সিস্টেম অন করা
+                db.ref('rooms/room1').update({ current_units: 0, manual_cutoff: false, allocated_units: 0 });
+                db.ref('rooms/room2').update({ current_units: 0, manual_cutoff: false, allocated_units: 0 });
+                
+                // ২. হিস্ট্রি টেবিল মেমোরি ইরেজ করা
+                db.ref('allocation_logs').remove();
+                
+                alert("System successfully restored to factory defaults!");
+            }
         }
     </script>
 </body>
