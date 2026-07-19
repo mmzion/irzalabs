@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hall Controller Panel</title>
+    <!-- Firebase Compatibility Libraries -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #eef2f5; margin: 0; padding: 30px; }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 30px; }
+        .container { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; max-width: 1000px; margin: 0 auto; }
+        .room-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); border-top: 5px solid #2c3e50; }
+        .room-card.alert-border { border-top-color: #e74c3c; }
+        h2 { margin-top: 0; color: #34495e; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .data-line { display: flex; justify-content: space-between; margin: 12px 0; font-size: 16px; }
+        .data-line span:first-child { color: #7f8c8d; }
+        .data-line span:last-child { font-weight: bold; }
+        .controls { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px; }
+        input[type="number"] { width: 80px; padding: 6px; border: 1px solid #ccc; border-radius: 4px; margin-right: 10px; }
+        button { padding: 7px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-update { background: #27ae60; color: white; }
+        .btn-cutoff { background: #e74c3c; color: white; width: 100%; margin-top: 15px; padding: 10px; font-size: 15px; }
+        .btn-restore { background: #2980b9; color: white; width: 100%; margin-top: 15px; padding: 10px; font-size: 15px; }
+    </style>
+</head>
+<body>
+
+    <h1>⚡ Hall Power Controller Panel</h1>
+
+    <div class="container">
+        <!-- ROOM 1 PANEL -->
+        <div class="room-card" id="card-room1">
+            <h2>Room 01</h2>
+            <div class="data-line"><span>Status:</span><span id="status-room1">-</span></div>
+            <div class="data-line"><span>Allocated Limit:</span><span id="alloc-room1">0.00 kWh</span></div>
+            <div class="data-line"><span>Current Used:</span><span id="curr-room1">0.00 kWh</span></div>
+            <div class="data-line"><span>Live Load:</span><span id="power-room1">0 W</span></div>
+            
+            <div class="controls">
+                <label>Set New Limit: </label>
+                <input type="number" id="input-room1" step="0.5" placeholder="kWh">
+                <button class="btn-update" onclick="updateLimit('room1')">Update</button>
+                <button id="btn-cut-room1" class="btn-cutoff" onclick="toggleCutoff('room1', true)">Emergency Shutdown</button>
+            </div>
+        </div>
+
+        <!-- ROOM 2 PANEL -->
+        <div class="room-card" id="card-room2">
+            <h2>Room 02</h2>
+            <div class="data-line"><span>Status:</span><span id="status-room2">-</span></div>
+            <div class="data-line"><span>Allocated Limit:</span><span id="alloc-room2">0.00 kWh</span></div>
+            <div class="data-line"><span>Current Used:</span><span id="curr-room2">0.00 kWh</span></div>
+            <div class="data-line"><span>Live Load:</span><span id="power-room2">0 W</span></div>
+            
+            <div class="controls">
+                <label>Set New Limit: </label>
+                <input type="number" id="input-room2" step="0.5" placeholder="kWh">
+                <button class="btn-update" onclick="updateLimit('room2')">Update</button>
+                <button id="btn-cut-room2" class="btn-cutoff" onclick="toggleCutoff('room2', true)">Emergency Shutdown</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // আপনার প্রোজেক্টের Firebase কনফিগারেশন
+        const firebaseConfig = {
+            apiKey: "AIzaSyC8NcbOPzhbUnm9NxOZyzdEJSLk_LOGYcc",
+            authDomain: "irza-labs.firebaseapp.com",
+            databaseURL: "https://irza-labs-default-rtdb.firebaseio.com",
+            projectId: "irza-labs",
+            storageBucket: "irza-labs.firebasestorage.app",
+            messagingSenderId: "269557073409",
+            appId: "1:269557073409:web:4c2977681884d733f62200"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        function listenToRoom(roomName) {
+            db.ref('rooms/' + roomName).on('value', (snapshot) => {
+                const data = snapshot.val();
+                if(!data) return;
+
+                document.getElementById(`status-${roomName}`).innerText = data.status || "-";
+                document.getElementById(`alloc-${roomName}`).innerText = (data.allocated_units ? parseFloat(data.allocated_units).toFixed(2) : "0.00") + " kWh";
+                document.getElementById(`curr-${roomName}`).innerText = (data.current_units ? parseFloat(data.current_units).toFixed(2) : "0.00") + " kWh";
+                document.getElementById(`power-${roomName}`).innerText = (data.power ? parseFloat(data.power).toFixed(1) : "0") + " W";
+
+                const cutBtn = document.getElementById(`btn-cut-${roomName}`);
+                const card = document.getElementById(`card-${roomName}`);
+
+                if(data.manual_cutoff === true) {
+                    cutBtn.innerText = "Restore Power Line";
+                    cutBtn.className = "btn-restore";
+                    cutBtn.onclick = () => toggleCutoff(roomName, false);
+                    card.classList.add('alert-border');
+                } else {
+                    cutBtn.innerText = "Emergency Shutdown";
+                    cutBtn.className = "btn-cutoff";
+                    cutBtn.onclick = () => toggleCutoff(roomName, true);
+                    
+                    if(data.status && data.status.includes("OFF")) {
+                        card.classList.add('alert-border');
+                    } else {
+                        card.classList.remove('alert-border');
+                    }
+                }
+            });
+        }
+
+        function updateLimit(roomName) {
+            const val = parseFloat(document.getElementById(`input-${roomName}`).value);
+            if(!isNaN(val) && val >= 0) {
+                db.ref('rooms/' + roomName).update({ allocated_units: val });
+                document.getElementById(`input-${roomName}`).value = '';
+            }
+        }
+
+        function toggleCutoff(roomName, status) {
+            db.ref('rooms/' + roomName).update({ manual_cutoff: status });
+        }
+
+        listenToRoom('room1');
+        listenToRoom('room2');
+    </script>
+</body>
+</html>
