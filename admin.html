@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hall Power Controller Panel</title>
+    <title>Hall Power Controller Panel - Secure Login</title>
     <!-- Firebase Compatibility Libraries -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -26,9 +27,12 @@
             margin: 0; 
             padding: 30px; 
             min-height: 95vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
-        .main-container { max-width: 1100px; margin: 0 auto; }
+        .main-container { max-width: 1100px; margin: 0 auto; width: 100%; }
         
         h1 { 
             text-align: center; 
@@ -40,6 +44,35 @@
             -webkit-text-fill-color: transparent; 
         }
         .subtitle { text-align: center; color: #94a3b8; font-size: 14px; margin-bottom: 35px; }
+
+        /* লগইন স্ক্রিন স্টাইল */
+        .login-card {
+            background: rgba(255, 255, 255, 0.06); 
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 400px;
+            width: 90%;
+            margin: 0 auto;
+            padding: 35px 25px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        .login-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 15px;
+            outline: none;
+            box-sizing: border-box;
+        }
+        .login-input:focus { border-color: var(--primary); }
+        .error-msg { color: var(--danger); font-size: 13px; margin-top: 10px; display: none; font-weight: 600; }
 
         /* গ্লোবাল অ্যানালিটিক্স ওভারভিউ কার্ড */
         .overview-card {
@@ -65,42 +98,37 @@
             .overview-card { grid-template-columns: 1fr; gap: 15px; }
         }
 
-        /* রুম কার্ডের প্রিমিয়াম ডিজাইন */
+        /* রুম কার্ড ডিজাইন */
         .room-card { 
             background: rgba(255, 255, 255, 0.06); 
             backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             padding: 25px; 
             border-radius: 20px; 
             box-shadow: 0 15px 35px rgba(0,0,0,0.2); 
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
         }
         .room-card:hover { transform: translateY(-5px); box-shadow: 0 20px 45px rgba(0,0,0,0.3); }
         .room-card.alert-active { border: 1.5px solid rgba(231, 76, 60, 0.5); background: rgba(231, 76, 60, 0.03); }
 
         h2 { margin: 0 0 20px 0; font-size: 22px; color: #fff; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; }
+        h2.login-title { border: none; padding: 0; margin-bottom: 25px; justify-content: center; gap: 10px; }
         
-        /* ডেটা প্রেজেন্টেশন লাইন */
         .data-line { display: flex; justify-content: space-between; margin: 14px 0; font-size: 16px; align-items: center; }
         .data-line span:first-child { color: #94a3b8; display: flex; align-items: center; gap: 10px; }
         .data-line span:last-child { font-weight: 700; color: #fff; }
 
-        /* স্ট্যাটাস ব্যাজ */
         .badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
         .badge.ON { background: rgba(46, 204, 113, 0.2); color: var(--success); border: 1px solid rgba(46, 204, 113, 0.4); }
         .badge.OFF { background: rgba(231, 76, 60, 0.2); color: var(--danger); border: 1px solid rgba(231, 76, 60, 0.4); }
 
-        /* কন্ট্রোল এরিয়া ও ইনপুট বাটন */
         .controls-box { background: rgba(255, 255, 255, 0.03); padding: 18px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.05); margin-top: 25px; }
-        .controls-box label { font-size: 12px; color: #94a3b8; display: block; margin-bottom: 8px; font-weight: 600; }
+        .controls-box label { font-size: 12px; color: #94a3b8; display: block; margin-bottom: 8px; font-weight: 600; text-align: left; }
         
         .input-group { display: flex; gap: 10px; margin-bottom: 12px; }
         input[type="number"] { flex: 1; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; color: #fff; font-size: 15px; font-weight: bold; outline: none; }
         input[type="number"]:focus { border-color: var(--primary); }
         
-        /* বোতামসমূহের স্টাইল */
         button { font-family: inherit; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
         
         .btn-update { background: var(--primary); color: white; padding: 0 20px; font-size: 14px; }
@@ -115,15 +143,31 @@
         
         .btn-restore { background: rgba(46, 204, 113, 0.15); color: var(--success); border: 1px solid rgba(46, 204, 113, 0.4); width: 100%; padding: 12px; font-size: 14px; border-radius: 10px; }
         .btn-restore:hover { background: var(--success); color: white; box-shadow: 0 5px 15px rgba(46, 204, 113, 0.3); }
+
+        .btn-logout { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #94a3b8; padding: 6px 14px; font-size: 12px; font-weight: 600; border-radius: 6px; margin: 0 auto 20px auto; }
+        .btn-logout:hover { color: #fff; border-color: #fff; background: rgba(255,255,255,0.05); }
     </style>
 </head>
 <body>
 
-    <div class="main-container">
+    <!-- ১. সুরক্ষিত এডমিন লগইন গেটওয়ে -->
+    <div id="loginScreen" class="login-card">
+        <h2 class="login-title"><i class="fa-solid fa-shield-halved" style="color: var(--primary);"></i> Admin Gateway</h2>
+        <div class="controls-box" style="background: transparent; border: none; margin: 0; padding: 0;">
+            <input type="email" id="loginEmail" class="login-input" placeholder="Admin Email Address">
+            <input type="password" id="loginPassword" class="login-input" placeholder="Enter Account Password">
+            <button class="btn-restore" onclick="handleLogin()" style="width: 100%; padding: 12px; font-size: 15px;"><i class="fa-solid fa-right-to-bracket"></i> Secure Sign In</button>
+            <p id="loginError" class="error-msg"></p>
+        </div>
+    </div>
+
+    <!-- ২. মূল ড্যাশবোর্ড কন্টেইনার (শুরুতে হাইড থাকবে) -->
+    <div class="main-container" id="adminDashboard" style="display: none;">
+        <button class="btn-logout" onclick="handleLogout()"><i class="fa-solid fa-power-off"></i> Logout Session</button>
         <h1><i class="fa-solid fa-gauge-high"></i> Hall Power Control Center</h1>
         <div class="subtitle">Central Command Panel for Load Allocation & Dispatch</div>
 
-        <!-- মাস্টার এনালিটিক্স ড্যাশবোর্ড -->
+        <!-- মাস্টার অ্যানালিটিক্স ড্যাশবোর্ড -->
         <div class="overview-card">
             <div class="overview-item">
                 <h3>Total Channels</h3>
@@ -201,21 +245,62 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // রিয়েল-টাইম গ্লোবাল অ্যানালিটিক্স ট্র্যাক করার জন্য অবজেক্টস
         let roomData = { room1: { power: 0, status: "OFF" }, room2: { power: 0, status: "OFF" } };
 
+        // ১. ফায়ারবেস অথেনটিকেশন লগইন লজিক
+        function handleLogin() {
+            const email = document.getElementById('loginEmail').value;
+            const pass = document.getElementById('loginPassword').value;
+            const errorText = document.getElementById('loginError');
+
+            if(!email || !pass) {
+                errorText.innerText = "Please enter both Email and Password!";
+                errorText.style.display = 'block';
+                return;
+            }
+
+            firebase.auth().signInWithEmailAndPassword(email, pass)
+                .then((userCredential) => {
+                    errorText.style.display = 'none';
+                    document.getElementById('loginScreen').style.display = 'none';
+                    document.getElementById('adminDashboard').style.display = 'block';
+                    
+                    // সফল লগইনের পর রিয়েল-টাইম ডাটাবেস লিসেনার একটিভ হবে
+                    listenToRoom('room1');
+                    listenToRoom('room2');
+                })
+                .catch((error) => {
+                    errorText.innerText = "Access Denied: Invalid Admin Credentials!";
+                    errorText.style.display = 'block';
+                });
+        }
+
+        // ২. লগআউট লজিক
+        function handleLogout() {
+            firebase.auth().signOut().then(() => {
+                // লিসেনার অফ করা
+                db.ref('rooms/room1').off();
+                db.ref('rooms/room2').off();
+                
+                // স্ক্রিন রিভার্স টগল করা
+                document.getElementById('adminDashboard').style.display = 'none';
+                document.getElementById('loginScreen').style.display = 'block';
+                document.getElementById('loginEmail').value = '';
+                document.getElementById('loginPassword').value = '';
+            });
+        }
+
+        // ৩. রিয়েল-টাইম ডাটাবেস লিসেনার
         function listenToRoom(roomName) {
             db.ref('rooms/' + roomName).on('value', (snapshot) => {
                 const data = snapshot.val();
                 if(!data) return;
 
-                // লোকাল অ্যানালিটিক্স অবজেক্ট আপডেট
                 roomData[roomName].power = data.power ? parseFloat(data.power) : 0;
                 roomData[roomName].status = data.status || "OFF";
                 roomData[roomName].allocated = data.allocated_units ? parseFloat(data.allocated_units) : 0;
                 updateGlobalMetrics();
 
-                // UI ফিল্ডস আপডেট
                 document.getElementById(`curr-${roomName}`).innerText = (data.current_units ? parseFloat(data.current_units).toFixed(2) : "0.00") + " kWh";
                 document.getElementById(`alloc-${roomName}`).innerText = roomData[roomName].allocated.toFixed(2) + " kWh";
                 document.getElementById(`power-${roomName}`).innerText = roomData[roomName].power.toFixed(1) + " W";
@@ -227,7 +312,6 @@
 
                 badge.innerText = data.status || "OFF";
 
-                // শাটডাউন ও কাট-অফ লজিক স্টেট হ্যান্ডেল
                 if(data.manual_cutoff === true) {
                     badge.className = "badge OFF";
                     cutBtn.innerHTML = `<i class="fa-solid fa-plug-circle-check"></i> Restore Power`;
@@ -249,7 +333,6 @@
             });
         }
 
-        // মাস্টার ওভারভিউ এরিয়া আপডেট করার ফাংশন
         function updateGlobalMetrics() {
             let totalPower = roomData.room1.power + roomData.room2.power;
             let activeCount = 0;
@@ -260,7 +343,6 @@
             document.getElementById('total-hall-power').innerText = totalPower.toFixed(1) + " W";
         }
 
-        // নতুন লিমিট সাবমিট
         function updateLimit(roomName) {
             const val = parseFloat(document.getElementById(`input-${roomName}`).value);
             if(!isNaN(val) && val >= 0) {
@@ -269,21 +351,15 @@
             }
         }
 
-        // কুইক অ্যাড বোতাম লজিক (+5, +10)
         function quickAdd(roomName, amount) {
             let currentAllocated = roomData[roomName].allocated || 0;
             let newLimit = currentAllocated + amount;
             db.ref('rooms/' + roomName).update({ allocated_units: newLimit });
         }
 
-        // ম্যানুয়াল এমার্জেন্সি শাটডাউন ট্রিপ লজিক
         function toggleCutoff(roomName, status) {
             db.ref('rooms/' + roomName).update({ manual_cutoff: status });
         }
-
-        // লিসেনার একটিভেশন
-        listenToRoom('room1');
-        listenToRoom('room2');
     </script>
 </body>
 </html>
