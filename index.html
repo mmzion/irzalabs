@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Electricity Dashboard</title>
+    <title>Student Electricity Management</title>
+    <!-- Firebase Compatibility Libraries -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f6f9; color: #333; margin: 0; padding: 20px; text-align: center; }
-        .card { background: white; max-width: 450px; margin: 40px auto; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .card { background: white; max-width: 450px; margin: 40px auto; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: none; }
         h1 { color: #2c3e50; font-size: 24px; margin-bottom: 5px; }
         .room-tag { background: #3498db; color: white; padding: 3px 12px; border-radius: 20px; font-size: 14px; display: inline-block; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 25px 0; }
@@ -18,14 +19,31 @@
         .status { font-weight: bold; padding: 10px; border-radius: 6px; margin-top: 20px; }
         .status.ON { background: #d4edda; color: #155724; }
         .status.OFF { background: #f8d7da; color: #721c24; animation: blink 1s infinite; }
+        
+        /* হোম স্ক্রিন বা ল্যান্ডিং পেজের স্টাইল */
+        .home-container { max-width: 500px; margin: 60px auto; padding: 20px; }
+        .btn-room { background: white; border: 2px solid #3498db; color: #2c3e50; font-size: 20px; font-weight: bold; padding: 25px; margin: 15px 0; border-radius: 12px; width: 100%; cursor: pointer; transition: all 0.3s ease; display: block; box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
+        .btn-room:hover { background: #3498db; color: white; transform: translateY(-3px); box-shadow: 0 6px 15px rgba(52, 152, 219, 0.3); }
+        .btn-back { background: #7f8c8d; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 20px; }
+        
         @keyframes blink { 50% { opacity: 0.6; } }
     </style>
 </head>
 <body>
 
-    <div class="card">
+    <!-- ১. হোম স্ক্রিন (রুম সিলেক্ট করার অপশন) -->
+    <div id="homeScreen" class="home-container">
+        <h1 style="margin-bottom: 10px;">⚡ Smart Hall Management</h1>
+        <p style="color: #7f8c8d; margin-bottom: 30px;">Select your room to view live electricity data</p>
+        
+        <button class="btn-room" onclick="selectRoom('room1')">🚪 Room 01 Dashboard</button>
+        <button class="btn-room" onclick="selectRoom('room2')">🚪 Room 02 Dashboard</button>
+    </div>
+
+    <!-- ২. রুমের তথ্য দেখার ড্যাশবোর্ড কার্ড -->
+    <div id="dashboardCard" class="card">
         <h1 id="roomTitle">Room Dashboard</h1>
-        <span class="room-tag" id="roomSub">Loading...</span>
+        <span class="room-tag">Student View</span>
 
         <div class="grid">
             <div class="metric">
@@ -47,48 +65,81 @@
         </div>
 
         <div id="statusBox" class="status ON">STATUS: LOADING...</div>
+        
+        <button class="btn-back" onclick="goBack()">← Back to Rooms</button>
     </div>
 
     <script>
-        // ⚠️ আপনার Firebase কনফিগারেশন এখানে বসান
-const firebaseConfig = {
-    apiKey: "AIzaSyC8NcbOPzhbUnm9NxOZyzdEJSLk_LOGYcc",
-    authDomain: "irza-labs.firebaseapp.com",
-    databaseURL: "https://irza-labs-default-rtdb.firebaseio.com", // আপনার প্রোজেক্ট আইডি অনুযায়ী এই লিংকটি সেট করা হয়েছে
-    projectId: "irza-labs",
-    storageBucket: "irza-labs.firebasestorage.app",
-    messagingSenderId: "269557073409",
-    appId: "1:269557073409:web:4c2977681884d733f62200"
-};
+        // Firebase কনফিগারেশন
+        const firebaseConfig = {
+            apiKey: "AIzaSyC8NcbOPzhbUnm9NxOZyzdEJSLk_LOGYcc",
+            authDomain: "irza-labs.firebaseapp.com",
+            databaseURL: "https://irza-labs-default-rtdb.firebaseio.com",
+            projectId: "irza-labs",
+            storageBucket: "irza-labs.firebasestorage.app",
+            messagingSenderId: "269557073409",
+            appId: "1:269557073409:web:4c2977681884d733f62200"
+        };
+        
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+        let currentFirebaseRef = null;
 
-        // URL থেকে রুমের নাম নেওয়া (e.g., index.html?room=room1)
+        // পেজ লোড হওয়ার সময় ইউআরএল চেক করা
         const urlParams = new URLSearchParams(window.location.search);
-        let room = urlParams.get('room') || 'room1';
+        let initialRoom = urlParams.get('room');
         
-        document.getElementById('roomTitle').innerText = room.toUpperCase() + " Status";
-        document.getElementById('roomSub').innerText = "Student View";
+        if (initialRoom === 'room1' || initialRoom === 'room2') {
+            loadRoomDashboard(initialRoom);
+        } else {
+            // কোনো নির্দিষ্ট রুমের রিকোয়েস্ট না থাকলে হোম স্ক্রিন দেখাবে
+            document.getElementById('homeScreen').style.display = 'block';
+        }
 
-        // ফায়ারবেস থেকে রিয়েল-টাইম ডেটা রিড
-        db.ref('rooms/' + room).on('value', (snapshot) => {
-            const data = snapshot.val();
-            if(data) {
-                document.getElementById('allocUnits').innerText = parseFloat(data.allocated_units).toFixed(2) + " kWh";
-                document.getElementById('currUnits').innerText = parseFloat(data.current_units).toFixed(2) + " kWh";
-                document.getElementById('livePower').innerText = parseFloat(data.power).toFixed(1) + " W";
-                document.getElementById('voltage').innerText = parseFloat(data.voltage).toFixed(1) + " V";
-                
-                const statusBox = document.getElementById('statusBox');
-                statusBox.innerText = "STATUS: " + data.status;
-                
-                if(data.status.includes("ON")) {
-                    statusBox.className = "status ON";
-                } else {
-                    statusBox.className = "status OFF";
+        // রুমে ক্লিক করলে ইউআরএল আপডেট করবে এবং ড্যাশবোর্ড লোড করবে
+        function selectRoom(roomName) {
+            window.history.pushState({}, '', '?room=' + roomName);
+            loadRoomDashboard(roomName);
+        }
+
+        // ফায়ারবেস থেকে স্পেসিফিক রুমের ডেটা আনা ও দেখানো
+        function loadRoomDashboard(roomName) {
+            document.getElementById('homeScreen').style.display = 'none';
+            document.getElementById('dashboardCard').style.display = 'block';
+            document.getElementById('roomTitle').innerText = roomName.toUpperCase() + " Status";
+
+            // যদি আগে থেকে কোনো রুমের লিসেনার অন থাকে, তা বন্ধ করা
+            if (currentFirebaseRef) currentFirebaseRef.off();
+
+            currentFirebaseRef = db.ref('rooms/' + roomName);
+            currentFirebaseRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                if(data) {
+                    document.getElementById('allocUnits').innerText = (data.allocated_units ? parseFloat(data.allocated_units).toFixed(2) : "0.00") + " kWh";
+                    document.getElementById('currUnits').innerText = (data.current_units ? parseFloat(data.current_units).toFixed(2) : "0.00") + " kWh";
+                    document.getElementById('livePower').innerText = (data.power ? parseFloat(data.power).toFixed(1) : "0.0") + " W";
+                    document.getElementById('voltage').innerText = (data.voltage ? parseFloat(data.voltage).toFixed(1) : "0.0") + " V";
+                    
+                    const statusBox = document.getElementById('statusBox');
+                    const roomStatus = data.status || "OFF";
+                    statusBox.innerText = "STATUS: " + roomStatus;
+                    
+                    if(roomStatus.includes("ON")) {
+                        statusBox.className = "status ON";
+                    } else {
+                        statusBox.className = "status OFF";
+                    }
                 }
-            }
-        });
+            });
+        }
+
+        // হোম স্ক্রিনে ফিরে যাওয়ার ফাংশন
+        function goBack() {
+            if (currentFirebaseRef) currentFirebaseRef.off();
+            window.history.pushState({}, '', window.location.pathname);
+            document.getElementById('dashboardCard').style.display = 'none';
+            document.getElementById('homeScreen').style.display = 'block';
+        }
     </script>
 </body>
 </html>
