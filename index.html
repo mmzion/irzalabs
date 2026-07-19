@@ -3,74 +3,158 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Electricity Management</title>
+    <title>Smart Hall Electricity Management</title>
     <!-- Firebase Compatibility Libraries -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f6f9; color: #333; margin: 0; padding: 20px; text-align: center; }
-        .card { background: white; max-width: 450px; margin: 40px auto; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: none; }
-        h1 { color: #2c3e50; font-size: 24px; margin-bottom: 5px; }
-        .room-tag { background: #3498db; color: white; padding: 3px 12px; border-radius: 20px; font-size: 14px; display: inline-block; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 25px 0; }
-        .metric { background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #3498db; text-align: left; }
-        .metric label { font-size: 12px; color: #7f8c8d; text-transform: uppercase; }
-        .metric div { font-size: 20px; font-weight: bold; margin-top: 5px; }
-        .status { font-weight: bold; padding: 10px; border-radius: 6px; margin-top: 20px; }
-        .status.ON { background: #d4edda; color: #155724; }
-        .status.OFF { background: #f8d7da; color: #721c24; animation: blink 1s infinite; }
+        :root {
+            --primary: #3498db;
+            --success: #2ecc71;
+            --warning: #f1c40f;
+            --danger: #e74c3c;
+            --bg-gradient: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: var(--bg-gradient); 
+            color: #f8fafc; 
+            margin: 0; 
+            padding: 20px; 
+            min-height: 95vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* প্রিমিয়াম গ্লাস কার্ড ইফেক্ট */
+        .glass-card { 
+            background: rgba(255, 255, 255, 0.06); 
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 480px; 
+            width: 90%;
+            margin: 20px auto; 
+            padding: 35px 25px; 
+            border-radius: 20px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3); 
+            transition: all 0.4s ease;
+        }
+
+        h1 { font-size: 28px; font-weight: 700; margin: 0 0 10px 0; background: linear-gradient(to right, #3498db, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .sub-text { color: #94a3b8; font-size: 14px; margin-bottom: 30px; }
+        .room-tag { background: rgba(52, 152, 219, 0.2); color: var(--primary); border: 1px solid rgba(52, 152, 219, 0.4); padding: 5px 16px; border-radius: 30px; font-size: 13px; font-weight: 600; display: inline-block; text-transform: uppercase; letter-spacing: 1px;}
+
+        /* গ্রিড ও মেট্রিক্স */
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 25px 0; }
+        .metric { background: rgba(255, 255, 255, 0.03); padding: 18px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.05); text-align: left; position: relative; overflow: hidden; }
+        .metric i { position: absolute; right: 15px; top: 18px; color: rgba(255,255,255,0.1); font-size: 22px; }
+        .metric label { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+        .metric div { font-size: 22px; font-weight: 700; margin-top: 8px; color: #fff; }
+
+        /* প্রোগ্রেস বার */
+        .progress-container { margin: 25px 0 15px 0; text-align: left; }
+        .progress-labels { display: flex; justify-content: space-between; font-size: 12px; color: #94a3b8; margin-bottom: 8px; }
+        .progress-bar-bg { background: rgba(255, 255, 255, 0.1); height: 10px; border-radius: 10px; overflow: hidden; }
+        .progress-bar-fill { background: linear-gradient(90deg, #3498db, #2ecc71); height: 100%; width: 0%; transition: width 0.5s ease, background 0.3s ease; border-radius: 10px; }
+
+        /* স্ট্যাটাস ও নোটিফিকেশন */
+        .status { font-weight: 700; padding: 12px; border-radius: 10px; margin-top: 25px; font-size: 15px; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .status.ON { background: rgba(46, 204, 113, 0.15); color: #2ecc71; border: 1px solid rgba(46, 204, 113, 0.3); }
+        .status.OFF { background: rgba(231, 76, 60, 0.15); color: #e74c3c; border: 1px solid rgba(231, 76, 60, 0.3); animation: pulse 1.5s infinite; }
         
-        /* হোম স্ক্রিন বা ল্যান্ডিং পেজের স্টাইল */
-        .home-container { max-width: 500px; margin: 60px auto; padding: 20px; }
-        .btn-room { background: white; border: 2px solid #3498db; color: #2c3e50; font-size: 20px; font-weight: bold; padding: 25px; margin: 15px 0; border-radius: 12px; width: 100%; cursor: pointer; transition: all 0.3s ease; display: block; box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
-        .btn-room:hover { background: #3498db; color: white; transform: translateY(-3px); box-shadow: 0 6px 15px rgba(52, 152, 219, 0.3); }
-        .btn-back { background: #7f8c8d; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 20px; }
+        .alert-banner { display: none; background: rgba(241, 196, 15, 0.15); color: #f1c40f; border: 1px solid rgba(241, 196, 15, 0.3); padding: 10px; border-radius: 10px; margin-top: 15px; font-size: 13px; font-weight: 600; animation: blink 1s infinite; }
+
+        /* বাটন স্টাইল */
+        .btn-room { background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255,255,255,0.1); color: #fff; font-size: 18px; font-weight: 600; padding: 22px; margin: 15px 0; border-radius: 15px; width: 100%; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; justify-content: space-between; }
+        .btn-room:hover { background: rgba(52, 152, 219, 0.15); border-color: var(--primary); transform: translateY(-3px); box-shadow: 0 10px 20px rgba(52, 152, 219, 0.15); }
+        .btn-room i { color: var(--primary); font-size: 20px; }
         
-        @keyframes blink { 50% { opacity: 0.6; } }
+        .btn-back { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #94a3b8; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 25px; transition: all 0.2s; font-size: 13px; }
+        .btn-back:hover { color: #fff; border-color: #fff; background: rgba(255,255,255,0.05); }
+
+        /* অ্যানিমেশনসমূহ */
+        @keyframes pulse { 0% { opacity: 0.8; } 50% { opacity: 0.4; } 100% { opacity: 0.8; } }
+        @keyframes blink { 50% { border-color: rgba(241, 196, 15, 0.8); } }
     </style>
 </head>
 <body>
 
-    <!-- ১. হোম স্ক্রিন (রুম সিলেক্ট করার অপশন) -->
-    <div id="homeScreen" class="home-container">
-        <h1 style="margin-bottom: 10px;">⚡ Smart Hall Management</h1>
-        <p style="color: #7f8c8d; margin-bottom: 30px;">Select your room to view live electricity data</p>
+    <!-- ১. আধুনিক হোম ল্যান্ডিং স্ক্রিন -->
+    <div id="homeScreen" class="glass-card" style="display: none;">
+        <h1><i class="fa-solid fa-bolt"></i> Smart Hall Energy</h1>
+        <div class="sub-text">Real-time room electricity monitoring portal</div>
         
-        <button class="btn-room" onclick="selectRoom('room1')">🚪 Room 01 Dashboard</button>
-        <button class="btn-room" onclick="selectRoom('room2')">🚪 Room 02 Dashboard</button>
+        <button class="btn-room" onclick="selectRoom('room1')">
+            <span><i class="fa-solid fa-door-closed" style="margin-right: 12px;"></i> Room 01 Dashboard</span>
+            <i class="fa-solid fa-chevron-right"></i>
+        </button>
+        
+        <button class="btn-room" onclick="selectRoom('room2')">
+            <span><i class="fa-solid fa-door-closed" style="margin-right: 12px;"></i> Room 02 Dashboard</span>
+            <i class="fa-solid fa-chevron-right"></i>
+        </button>
     </div>
 
-    <!-- ২. রুমের তথ্য দেখার ড্যাশবোর্ড কার্ড -->
-    <div id="dashboardCard" class="card">
-        <h1 id="roomTitle">Room Dashboard</h1>
-        <span class="room-tag">Student View</span>
+    <!-- ২. ইন্টারঅ্যাক্টিভ স্টুডেন্ট ড্যাশবোর্ড -->
+    <div id="dashboardCard" class="glass-card" style="display: none;">
+        <h1 id="roomTitle">Room Status</h1>
+        <span class="room-tag"><i class="fa-solid fa-user-grad"></i> Live Telemetry</span>
+
+        <!-- ৫-সেকেন্ড ওভারলোডের ওয়ার্নিং ব্যানার -->
+        <div id="alertBanner" class="alert-banner">
+            <i class="fa-solid fa-triangle-exclamation"></i> Warning: Limit exceeded! Power cut-off in 5s!
+        </div>
 
         <div class="grid">
             <div class="metric">
+                <i class="fa-solid fa-circle-check"></i>
                 <label>Allocated Units</label>
                 <div id="allocUnits">0.00 kWh</div>
             </div>
             <div class="metric">
+                <i class="fa-solid fa-chart-simple"></i>
                 <label>Current Used</label>
                 <div id="currUnits">0.00 kWh</div>
             </div>
             <div class="metric">
-                <label>Live Power</label>
+                <i class="fa-solid fa-plug"></i>
+                <label>Live Load</label>
                 <div id="livePower">0 W</div>
             </div>
             <div class="metric">
+                <i class="fa-solid fa-gauge-high"></i>
                 <label>Voltage</label>
                 <div id="voltage">0 V</div>
             </div>
         </div>
 
-        <div id="statusBox" class="status ON">STATUS: LOADING...</div>
+        <!-- নতুন ফিচার: ব্যবহারভিত্তিক প্রোগ্রেস বার ও রিমেইনিং ইউনিট -->
+        <div class="progress-container">
+            <div class="progress-labels">
+                <span id="remainingUnits">Remaining: 0.00 kWh</span>
+                <span id="progressPercent">0% Used</span>
+            </div>
+            <div class="progress-bar-bg">
+                <div id="progressBar" class="progress-bar-fill"></div>
+            </div>
+        </div>
+
+        <div id="statusBox" class="status ON">
+            <i class="fa-solid fa-circle-dot"></i> STATUS: CONNECTING...
+        </div>
         
-        <button class="btn-back" onclick="goBack()">← Back to Rooms</button>
+        <button class="btn-back" onclick="goBack()"><i class="fa-solid fa-arrow-left"></i> Back to Rooms</button>
     </div>
 
     <script>
-        // Firebase কনফিগারেশন
+        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyC8NcbOPzhbUnm9NxOZyzdEJSLk_LOGYcc",
             authDomain: "irza-labs.firebaseapp.com",
@@ -85,55 +169,84 @@
         const db = firebase.database();
         let currentFirebaseRef = null;
 
-        // পেজ লোড হওয়ার সময় ইউআরএল চেক করা
         const urlParams = new URLSearchParams(window.location.search);
         let initialRoom = urlParams.get('room');
         
         if (initialRoom === 'room1' || initialRoom === 'room2') {
             loadRoomDashboard(initialRoom);
         } else {
-            // কোনো নির্দিষ্ট রুমের রিকোয়েস্ট না থাকলে হোম স্ক্রিন দেখাবে
             document.getElementById('homeScreen').style.display = 'block';
         }
 
-        // রুমে ক্লিক করলে ইউআরএল আপডেট করবে এবং ড্যাশবোর্ড লোড করবে
         function selectRoom(roomName) {
             window.history.pushState({}, '', '?room=' + roomName);
             loadRoomDashboard(roomName);
         }
 
-        // ফায়ারবেস থেকে স্পেসিফিক রুমের ডেটা আনা ও দেখানো
         function loadRoomDashboard(roomName) {
             document.getElementById('homeScreen').style.display = 'none';
             document.getElementById('dashboardCard').style.display = 'block';
-            document.getElementById('roomTitle').innerText = roomName.toUpperCase() + " Status";
+            document.getElementById('roomTitle').innerHTML = `<i class="fa-solid fa-bolt"></i> ${roomName.toUpperCase()} Data`;
 
-            // যদি আগে থেকে কোনো রুমের লিসেনার অন থাকে, তা বন্ধ করা
             if (currentFirebaseRef) currentFirebaseRef.off();
 
             currentFirebaseRef = db.ref('rooms/' + roomName);
             currentFirebaseRef.on('value', (snapshot) => {
                 const data = snapshot.val();
                 if(data) {
-                    document.getElementById('allocUnits').innerText = (data.allocated_units ? parseFloat(data.allocated_units).toFixed(2) : "0.00") + " kWh";
-                    document.getElementById('currUnits').innerText = (data.current_units ? parseFloat(data.current_units).toFixed(2) : "0.00") + " kWh";
-                    document.getElementById('livePower').innerText = (data.power ? parseFloat(data.power).toFixed(1) : "0.0") + " W";
-                    document.getElementById('voltage').innerText = (data.voltage ? parseFloat(data.voltage).toFixed(1) : "0.0") + " V";
-                    
-                    const statusBox = document.getElementById('statusBox');
+                    const allocated = data.allocated_units ? parseFloat(data.allocated_units) : 0;
+                    const current = data.current_units ? parseFloat(data.current_units) : 0;
+                    const power = data.power ? parseFloat(data.power) : 0;
+                    const voltage = data.voltage ? parseFloat(data.voltage) : 0;
                     const roomStatus = data.status || "OFF";
-                    statusBox.innerText = "STATUS: " + roomStatus;
+
+                    // ১. বেসিক মেট্রিকে ডেটা সেট
+                    document.getElementById('allocUnits').innerText = allocated.toFixed(2) + " kWh";
+                    document.getElementById('currUnits').innerText = current.toFixed(2) + " kWh";
+                    document.getElementById('livePower').innerText = power.toFixed(1) + " W";
+                    document.getElementById('voltage').innerText = voltage.toFixed(1) + " V";
                     
+                    // ২. নতুন ফিচার: প্রোগ্রেস বার ও রিমেইনিং ইউনিট লজিক
+                    let percentage = allocated > 0 ? (current / allocated) * 100 : 0;
+                    if (percentage > 100) percentage = 100;
+                    
+                    const remaining = allocated - current;
+                    document.getElementById('progressPercent').innerText = percentage.toFixed(0) + "% Used";
+                    document.getElementById('remainingUnits').innerText = remaining > 0 ? `Remaining: ${remaining.toFixed(2)} kWh` : "Remaining: 0.00 kWh";
+                    
+                    const pBar = document.getElementById('progressBar');
+                    pBar.style.width = percentage + "%";
+
+                    // লিমিট অনুযায়ী প্রোগ্রেস বারের কালার পরিবর্তন
+                    if(percentage >= 90) {
+                        pBar.style.background = 'var(--danger)';
+                    } else if(percentage >= 70) {
+                        pBar.style.background = 'var(--warning)';
+                    } else {
+                        pBar.style.background = 'linear-gradient(90deg, #3498db, #2ecc71)';
+                    }
+
+                    // ৩. ৫-সেকেন্ড একটানা এক্সপায়ার ওয়ার্নিং ব্যানার লজিক
+                    const alertBanner = document.getElementById('alertBanner');
+                    if(current > allocated && roomStatus.includes("ON")) {
+                        alertBanner.style.display = 'block';
+                    } else {
+                        alertBanner.style.display = 'none';
+                    }
+
+                    // ৪. স্ট্যাটাস বক্স কালার ফিক্সিং
+                    const statusBox = document.getElementById('statusBox');
                     if(roomStatus.includes("ON")) {
+                        statusBox.innerHTML = `<i class="fa-solid fa-circle-check"></i> STATUS: ${roomStatus}`;
                         statusBox.className = "status ON";
                     } else {
+                        statusBox.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> STATUS: ${roomStatus}`;
                         statusBox.className = "status OFF";
                     }
                 }
             });
         }
 
-        // হোম স্ক্রিনে ফিরে যাওয়ার ফাংশন
         function goBack() {
             if (currentFirebaseRef) currentFirebaseRef.off();
             window.history.pushState({}, '', window.location.pathname);
