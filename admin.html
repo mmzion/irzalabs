@@ -363,7 +363,11 @@
         // ============ GLOBAL STATE ============
         const rooms = ['room1', 'room2'];
         const roomData = {};
-        rooms.forEach(r => roomData[r] = { power:0, status:"OFF", current:0, allocated:0, manual_cutoff:false, voltage:0, lastUpdate:0 });
+        rooms.forEach(r => roomData[r] = {
+            power:0, status:"OFF", current:0, allocated:0,
+            manual_cutoff:false, voltage:0, max_watt_limit:0,
+            lastUpdate:0
+        });
         let chart;
 
         // ============ INIT CHART ============
@@ -404,7 +408,6 @@
                     initChart();
                     rooms.forEach(r => listenToRoom(r));
                     listenToLogs();
-                    // Online check interval
                     setInterval(checkOnlineStatus, 2000);
                 })
                 .catch(() => {
@@ -429,6 +432,7 @@
                 rd.current = data.current_units || 0;
                 rd.voltage = data.voltage || 0;
                 rd.manual_cutoff = data.manual_cutoff === true;
+                rd.max_watt_limit = data.max_watt_limit || 0;   // FIX: store watt limit
                 rd.lastUpdate = Date.now();
 
                 updateRoomUI(roomName);
@@ -459,10 +463,11 @@
             card.querySelector('.curr-val').innerText = rd.current.toFixed(2) + " kWh";
             card.querySelector('.alloc-val').innerText = rd.allocated.toFixed(2) + " kWh";
             card.querySelector('.power-val').innerText = rd.power.toFixed(1) + " W";
-            card.querySelector('.watt-limit-val').innerText = (data.max_watt_limit || 0) + " W";
+            // FIX: use rd.max_watt_limit instead of data.max_watt_limit
+            card.querySelector('.watt-limit-val').innerText = (rd.max_watt_limit || 0) + " W";
             card.querySelector('.volt-val').innerText = rd.voltage.toFixed(1) + " V";
 
-            // Cutoff button logic
+            // Cutoff button
             const cutBtn = card.querySelector('.btn-cutoff');
             if (rd.manual_cutoff) {
                 cutBtn.innerHTML = '<i class="fa-solid fa-rotate-left"></i> Restore Power';
@@ -610,7 +615,7 @@
             `;
         }
 
-        // On page load, build room cards
+        // Build room cards on load
         document.getElementById('roomsContainer').innerHTML = rooms.map(r => buildRoomCard(r)).join('');
     </script>
 </body>
