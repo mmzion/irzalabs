@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ Hall Power Control Center</title>
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <!-- Font Awesome & Chart.js -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg: #0f172a;
+            --card-bg: rgba(255,255,255,0.04);
+            --border: rgba(255,255,255,0.08);
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 16px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        /* Login */
+        .login-box {
+            max-width: 400px;
+            margin: 80px auto;
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 32px 24px;
+            text-align: center;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+        }
+        .login-box h2 { font-size: 22px; margin-bottom: 20px; }
+        .login-box input {
+            width: 100%;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border);
+            padding: 12px;
+            border-radius: 10px;
+            color: #fff;
+            margin-bottom: 12px;
+            font-size: 14px;
+            outline: none;
+            transition: border 0.2s;
+        }
+        .login-box input:focus { border-color: var(--primary); }
+        .login-box button {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .login-box button:hover { background: #2563eb; }
+        .error-msg { color: var(--danger); font-size: 13px; margin-top: 8px; display: none; }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #3b82f6, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .header-buttons { display: flex; gap: 8px; }
+        .btn {
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 13px;
+            padding: 8px 14px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: 0.2s;
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #94a3b8;
+        }
+        .btn-outline:hover { background: rgba(255,255,255,0.05); }
+        .btn-danger-outline {
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.3);
+            color: #fca5a5;
+        }
+
+        /* Top stats */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+        }
+        .stat-card .label { font-size: 10px; text-transform: uppercase; color: var(--text-muted); }
+        .stat-card .value { font-size: 20px; font-weight: 700; margin-top: 4px; }
+
+        /* Room grid */
+        .rooms-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .room-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 20px;
+            transition: 0.2s;
+        }
+        .room-card.offline { opacity: 0.6; }
+        .room-card.alert { border-color: rgba(239,68,68,0.4); }
+
+        .room-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .room-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            font-size: 17px;
+        }
+        .online-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 8px var(--success);
+            flex-shrink: 0;
+        }
+        .online-dot.offline {
+            background: var(--danger);
+            box-shadow: 0 0 8px var(--danger);
+        }
+
+        .badge {
+            padding: 3px 12px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .badge.on { background: rgba(16,185,129,0.2); color: var(--success); }
+        .badge.off { background: rgba(239,68,68,0.2); color: var(--danger); }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+        .data-row .dim { color: var(--text-muted); }
+
+        .controls {
+            background: rgba(0,0,0,0.2);
+            border-radius: 14px;
+            padding: 16px;
+            margin-top: 14px;
+        }
+        .controls label {
+            display: block;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+        .input-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .input-row input {
+            flex: 1;
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            outline: none;
+            font-size: 13px;
+        }
+        .btn-action {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-action.watt { background: var(--warning); color: #000; }
+        .btn-quick {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #cbd5e1;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-quick:hover { background: rgba(255,255,255,0.12); }
+
+        .btn-cutoff {
+            width: 100%;
+            background: rgba(239,68,68,0.15);
+            color: #fca5a5;
+            border: 1px solid rgba(239,68,68,0.3);
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .btn-cutoff.restore {
+            background: rgba(16,185,129,0.15);
+            color: var(--success);
+            border-color: rgba(16,185,129,0.3);
+        }
+
+        /* Chart card */
+        .chart-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        /* Logs */
+        .log-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 20px;
+            overflow-x: auto;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 500px; }
+        th { text-align: left; padding: 10px; color: var(--text-muted); border-bottom: 1px solid rgba(255,255,255,0.05); }
+        td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+
+        @media (max-width: 600px) {
+            .rooms-grid { grid-template-columns: 1fr; }
+            .stats { grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+            .stat-card .value { font-size: 18px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-box">
+        <h2><i class="fa-solid fa-shield-halved" style="color: var(--primary);"></i> Admin Login</h2>
+        <div>
+            <input type="email" id="loginEmail" placeholder="Email">
+            <input type="password" id="loginPassword" placeholder="Password">
+            <button onclick="handleLogin()"><i class="fa-solid fa-right-to-bracket"></i> Sign In</button>
+            <p id="loginError" class="error-msg"></p>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div class="container" id="adminDashboard" style="display:none;">
+        <div class="header">
+            <h1><i class="fa-solid fa-bolt"></i> Hall Power Command</h1>
+            <div class="header-buttons">
+                <button class="btn btn-outline" onclick="handleLogout()"><i class="fa-solid fa-power-off"></i> Logout</button>
+                <button class="btn btn-danger-outline" onclick="masterSystemReset()"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card"><div class="label">Active Rooms</div><div class="value" id="activeRooms">0</div></div>
+            <div class="stat-card"><div class="label">Total Load</div><div class="value" id="totalPower">0 W</div></div>
+            <div class="stat-card"><div class="label">Log Entries</div><div class="value" id="totalLogs">0</div></div>
+        </div>
+
+        <div class="rooms-grid" id="roomsContainer">
+            <!-- Dynamically generated by JS -->
+        </div>
+
+        <div class="chart-card">
+            <h3 style="margin:0 0 15px; font-size:13px; text-transform:uppercase; color:var(--text-muted);"><i class="fa-solid fa-chart-bar"></i> Consumption Overview</h3>
+            <div style="position:relative; height:200px;"><canvas id="liveChart"></canvas></div>
+        </div>
+
+        <div class="log-card">
+            <h3 style="margin:0 0 15px; font-size:13px; text-transform:uppercase; color:var(--text-muted);"><i class="fa-solid fa-clock-history"></i> Recent Activity</h3>
+            <table><thead><tr><th>Time</th><th>Room</th><th>Action</th><th>Value</th></tr></thead><tbody id="logBody"></tbody></table>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyC8NcbOPzhbUnm9NxOZyzdEJSLk_LOGYcc",
+            authDomain: "irza-labs.firebaseapp.com",
+            databaseURL: "https://irza-labs-default-rtdb.firebaseio.com",
+            projectId: "irza-labs",
+            storageBucket: "irza-labs.firebasestorage.app",
+            messagingSenderId: "269557073409",
+            appId: "1:269557073409:web:4c2977681884d733f62200"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // ============ GLOBAL STATE ============
+        const rooms = ['room1', 'room2'];
+        const roomData = {};
+        rooms.forEach(r => roomData[r] = {
+            power:0, status:"OFF", current:0, allocated:0,
+            manual_cutoff:false, voltage:0, max_watt_limit:0,
+            lastUpdate:0
+        });
+        let chart;
+
+        // ============ INIT CHART ============
+        function initChart() {
+            const ctx = document.getElementById('liveChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Room 01', 'Room 02'],
+                    datasets: [{
+                        label: 'kWh Used',
+                        data: [0, 0],
+                        backgroundColor: ['rgba(59,130,246,0.6)', 'rgba(168,85,247,0.6)'],
+                        borderColor: ['#3b82f6', '#a855f7'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                        x: { ticks: { color: '#94a3b8' } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // ============ LOGIN ============
+        function handleLogin() {
+            const email = document.getElementById('loginEmail').value;
+            const pass = document.getElementById('loginPassword').value;
+            firebase.auth().signInWithEmailAndPassword(email, pass)
+                .then(() => {
+                    document.getElementById('loginScreen').style.display = 'none';
+                    document.getElementById('adminDashboard').style.display = 'block';
+                    initChart();
+                    rooms.forEach(r => listenToRoom(r));
+                    listenToLogs();
+                    setInterval(checkOnlineStatus, 2000);
+                })
+                .catch(() => {
+                    document.getElementById('loginError').innerText = 'Invalid credentials!';
+                    document.getElementById('loginError').style.display = 'block';
+                });
+        }
+
+        function handleLogout() {
+            firebase.auth().signOut().then(() => location.reload());
+        }
+
+        // ============ LISTEN TO ROOM DATA ============
+        function listenToRoom(roomName) {
+            db.ref('rooms/' + roomName).on('value', snap => {
+                const data = snap.val();
+                if (!data) return;
+                const rd = roomData[roomName];
+                rd.power = data.power || 0;
+                rd.status = data.status || "OFF";
+                rd.allocated = data.allocated_units || 0;
+                rd.current = data.current_units || 0;
+                rd.voltage = data.voltage || 0;
+                rd.manual_cutoff = data.manual_cutoff === true;
+                rd.max_watt_limit = data.max_watt_limit || 0;   // FIX: store watt limit
+                rd.lastUpdate = Date.now();
+
+                updateRoomUI(roomName);
+                updateChart();
+                updateGlobalStats();
+            });
+        }
+
+        function updateRoomUI(roomName) {
+            const rd = roomData[roomName];
+            const card = document.getElementById(`card-${roomName}`);
+            if (!card) return;
+
+            // Online dot
+            const dot = card.querySelector('.online-dot');
+            if (dot) {
+                const online = (Date.now() - rd.lastUpdate) < 5000;
+                dot.className = 'online-dot' + (online ? '' : ' offline');
+            }
+
+            // Badge & status
+            const badge = card.querySelector('.badge');
+            const statusText = rd.status.includes("ON") ? "ON" : "OFF";
+            badge.innerText = statusText;
+            badge.className = 'badge ' + (statusText === 'ON' ? 'on' : 'off');
+
+            // Data fields
+            card.querySelector('.curr-val').innerText = rd.current.toFixed(2) + " kWh";
+            card.querySelector('.alloc-val').innerText = rd.allocated.toFixed(2) + " kWh";
+            card.querySelector('.power-val').innerText = rd.power.toFixed(1) + " W";
+            // FIX: use rd.max_watt_limit instead of data.max_watt_limit
+            card.querySelector('.watt-limit-val').innerText = (rd.max_watt_limit || 0) + " W";
+            card.querySelector('.volt-val').innerText = rd.voltage.toFixed(1) + " V";
+
+            // Cutoff button
+            const cutBtn = card.querySelector('.btn-cutoff');
+            if (rd.manual_cutoff) {
+                cutBtn.innerHTML = '<i class="fa-solid fa-rotate-left"></i> Restore Power';
+                cutBtn.className = 'btn-cutoff restore';
+                cutBtn.onclick = () => toggleCutoff(roomName, false);
+                card.classList.add('alert');
+            } else {
+                cutBtn.innerHTML = '<i class="fa-solid fa-power-off"></i> Shutdown';
+                cutBtn.className = 'btn-cutoff';
+                cutBtn.onclick = () => toggleCutoff(roomName, true);
+                card.classList.remove('alert');
+            }
+        }
+
+        function checkOnlineStatus() {
+            rooms.forEach(r => {
+                const rd = roomData[r];
+                const dot = document.querySelector(`#card-${r} .online-dot`);
+                if (dot) {
+                    const online = (Date.now() - rd.lastUpdate) < 5000;
+                    dot.className = 'online-dot' + (online ? '' : ' offline');
+                }
+            });
+        }
+
+        function updateChart() {
+            chart.data.datasets[0].data = [roomData.room1.current, roomData.room2.current];
+            chart.update();
+        }
+
+        function updateGlobalStats() {
+            let totalPower = roomData.room1.power + roomData.room2.power;
+            let activeCount = (roomData.room1.status.includes("ON") ? 1 : 0) + (roomData.room2.status.includes("ON") ? 1 : 0);
+            document.getElementById('activeRooms').innerText = activeCount;
+            document.getElementById('totalPower').innerText = totalPower.toFixed(1) + " W";
+        }
+
+        // ============ CONTROL FUNCTIONS ============
+        function updateLimit(roomName) {
+            const input = document.getElementById(`input-${roomName}`);
+            const val = parseFloat(input.value);
+            if (!isNaN(val) && val >= 0) {
+                db.ref('rooms/' + roomName).update({ allocated_units: val });
+                writeLog(roomName, "kWh Set", val + " kWh");
+                input.value = '';
+            }
+        }
+
+        function quickAdd(roomName, amount) {
+            const current = roomData[roomName].allocated || 0;
+            db.ref('rooms/' + roomName).update({ allocated_units: current + amount });
+            writeLog(roomName, "+" + amount + " kWh", (current + amount) + " kWh");
+        }
+
+        function updateWattLimit(roomName) {
+            const input = document.getElementById(`watt-input-${roomName}`);
+            const val = parseFloat(input.value);
+            if (!isNaN(val) && val >= 0) {
+                db.ref('rooms/' + roomName).update({ max_watt_limit: val });
+                writeLog(roomName, "Watt Limit", val + " W");
+                input.value = '';
+            }
+        }
+
+        function toggleCutoff(roomName, status) {
+            db.ref('rooms/' + roomName).update({ manual_cutoff: status });
+            writeLog(roomName, status ? "Shutdown" : "Restore", "manual");
+        }
+
+        function masterSystemReset() {
+            if (confirm("Reset all rooms & logs?")) {
+                rooms.forEach(r => db.ref('rooms/' + r).update({ current_units:0, manual_cutoff:false, allocated_units:0, max_watt_limit:0 }));
+                db.ref('allocation_logs').remove();
+                alert("System reset.");
+            }
+        }
+
+        // ============ LOGGING ============
+        function writeLog(room, type, val) {
+            const now = new Date();
+            const timeStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+            db.ref('allocation_logs').push({
+                timestamp: firebase.database.ServerValue.TIMESTAMP,
+                time: timeStr,
+                room: room,
+                type: type,
+                units: val
+            });
+        }
+
+        function listenToLogs() {
+            db.ref('allocation_logs').orderByChild('timestamp').limitToLast(10).on('value', snap => {
+                const tbody = document.getElementById('logBody');
+                tbody.innerHTML = '';
+                let count = 0;
+                snap.forEach(child => {
+                    const log = child.val();
+                    count++;
+                    const row = `<tr>
+                        <td>${log.time}</td>
+                        <td style="font-weight:600;color:var(--primary);">${log.room.toUpperCase()}</td>
+                        <td>${log.type}</td>
+                        <td>${log.units}</td>
+                    </tr>`;
+                    tbody.insertAdjacentHTML('afterbegin', row);
+                });
+                document.getElementById('totalLogs').innerText = count;
+            });
+        }
+
+        // ============ BUILD ROOM CARDS (dynamic) ============
+        function buildRoomCard(roomName) {
+            const displayName = roomName === 'room1' ? 'Room 01' : 'Room 02';
+            return `
+                <div class="room-card" id="card-${roomName}">
+                    <div class="room-header">
+                        <div class="room-title">
+                            <span class="online-dot offline"></span>
+                            ${displayName}
+                        </div>
+                        <span class="badge off">OFF</span>
+                    </div>
+                    <div class="data-row"><span class="dim">Used</span> <span class="curr-val">0.00 kWh</span></div>
+                    <div class="data-row"><span class="dim">Allocated</span> <span class="alloc-val">0.00 kWh</span></div>
+                    <div class="data-row"><span class="dim">Power / Limit</span> <span><span class="power-val">0 W</span> / <span class="watt-limit-val">0 W</span></span></div>
+                    <div class="data-row"><span class="dim">Voltage</span> <span class="volt-val">0 V</span></div>
+                    <div class="controls">
+                        <label>Energy Limit (kWh)</label>
+                        <div class="input-row">
+                            <input type="number" id="input-${roomName}" step="0.5" placeholder="kWh" style="flex:1;">
+                            <button class="btn-action" onclick="updateLimit('${roomName}')"><i class="fa-solid fa-floppy-disk"></i></button>
+                        </div>
+                        <div style="display:flex; gap:6px; margin-bottom:12px;">
+                            <button class="btn-quick" onclick="quickAdd('${roomName}',5)">+5 kWh</button>
+                            <button class="btn-quick" onclick="quickAdd('${roomName}',10)">+10 kWh</button>
+                        </div>
+                        <label>Watt Limit (W)</label>
+                        <div class="input-row">
+                            <input type="number" id="watt-input-${roomName}" placeholder="Watts">
+                            <button class="btn-action watt" onclick="updateWattLimit('${roomName}')"><i class="fa-solid fa-bolt"></i></button>
+                        </div>
+                        <button class="btn-cutoff" onclick="toggleCutoff('${roomName}', true)"><i class="fa-solid fa-power-off"></i> Shutdown</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Build room cards on load
+        document.getElementById('roomsContainer').innerHTML = rooms.map(r => buildRoomCard(r)).join('');
+    </script>
+</body>
+</html>
