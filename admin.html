@@ -1,622 +1,969 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚡ Hall Power Control Center</title>
-    <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <!-- Font Awesome & Chart.js -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <style>
-        :root {
-            --primary: #3b82f6;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --bg: #0f172a;
-            --card-bg: rgba(255,255,255,0.04);
-            --border: rgba(255,255,255,0.08);
-            --text: #e2e8f0;
-            --text-muted: #94a3b8;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GRIDWATCH · Hall Power Control</title>
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-            background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%);
-            color: var(--text);
-            min-height: 100vh;
-            padding: 16px;
-            -webkit-tap-highlight-color: transparent;
-        }
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
-        .container { max-width: 1200px; margin: 0 auto; }
+<!-- Fonts & icons -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-        /* Login */
-        .login-box {
-            max-width: 400px;
-            margin: 80px auto;
-            background: var(--card-bg);
-            backdrop-filter: blur(16px);
-            border: 1px solid var(--border);
-            border-radius: 24px;
-            padding: 32px 24px;
-            text-align: center;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.4);
-        }
-        .login-box h2 { font-size: 22px; margin-bottom: 20px; }
-        .login-box input {
-            width: 100%;
-            background: rgba(0,0,0,0.3);
-            border: 1px solid var(--border);
-            padding: 12px;
-            border-radius: 10px;
-            color: #fff;
-            margin-bottom: 12px;
-            font-size: 14px;
-            outline: none;
-            transition: border 0.2s;
-        }
-        .login-box input:focus { border-color: var(--primary); }
-        .login-box button {
-            width: 100%;
-            padding: 12px;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 15px;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .login-box button:hover { background: #2563eb; }
-        .error-msg { color: var(--danger); font-size: 13px; margin-top: 8px; display: none; }
+<style>
+:root{
+  --void:#080b10;
+  --panel:#0d131b;
+  --panel-2:#121a24;
+  --raised:#161f2b;
+  --line: rgba(148,197,224,0.09);
+  --line-strong: rgba(148,197,224,0.18);
+  --cyan:#22d3ee;
+  --cyan-dim: rgba(34,211,238,0.14);
+  --amber:#fbbf24;
+  --amber-dim: rgba(251,191,36,0.14);
+  --red:#f87171;
+  --red-dim: rgba(248,113,113,0.14);
+  --green:#34d399;
+  --green-dim: rgba(52,211,153,0.14);
+  --violet:#a78bfa;
+  --text:#e6edf3;
+  --text-dim:#8996a6;
+  --text-faint:#4b5867;
+  --font-display:'Space Grotesk', sans-serif;
+  --font-mono:'IBM Plex Mono', monospace;
+  --font-body: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --radius: 14px;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html{-webkit-tap-highlight-color:transparent;}
+body{
+  font-family:var(--font-body);
+  color:var(--text);
+  min-height:100vh;
+  background:
+    radial-gradient(ellipse 900px 500px at 15% -10%, rgba(34,211,238,0.08), transparent),
+    radial-gradient(ellipse 700px 500px at 100% 0%, rgba(167,139,250,0.06), transparent),
+    var(--void);
+  background-attachment:fixed;
+  padding:18px;
+  position:relative;
+}
+/* faint schematic grid */
+body::before{
+  content:"";
+  position:fixed; inset:0;
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: radial-gradient(ellipse 1200px 800px at 50% 0%, black, transparent 75%);
+  pointer-events:none;
+  z-index:0;
+}
+.container{max-width:1280px; margin:0 auto; position:relative; z-index:1;}
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+}
+::selection{background:var(--cyan); color:#00131a;}
+:focus-visible{outline:2px solid var(--cyan); outline-offset:2px; border-radius:6px;}
 
-        /* Header */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        .header h1 {
-            font-size: 24px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #3b82f6, #a855f7);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .header-buttons { display: flex; gap: 8px; }
-        .btn {
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 13px;
-            padding: 8px 14px;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            transition: 0.2s;
-        }
-        .btn-outline {
-            background: transparent;
-            border: 1px solid rgba(255,255,255,0.2);
-            color: #94a3b8;
-        }
-        .btn-outline:hover { background: rgba(255,255,255,0.05); }
-        .btn-danger-outline {
-            background: rgba(239,68,68,0.1);
-            border: 1px solid rgba(239,68,68,0.3);
-            color: #fca5a5;
-        }
+/* ============ LOGIN ============ */
+#loginScreen{
+  min-height:100vh; display:flex; align-items:center; justify-content:center;
+  position:relative; z-index:1;
+}
+.login-box{
+  width:100%; max-width:380px;
+  background:linear-gradient(180deg, var(--panel-2), var(--panel));
+  border:1px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding:36px 30px;
+  box-shadow:0 30px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03);
+}
+.login-mark{
+  width:52px; height:52px; border-radius:12px; margin:0 auto 18px;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--cyan-dim); border:1px solid rgba(34,211,238,0.35);
+  color:var(--cyan); font-size:20px;
+  box-shadow:0 0 24px rgba(34,211,238,0.25);
+}
+.login-box h2{
+  font-family:var(--font-display); font-weight:700; font-size:20px;
+  text-align:center; letter-spacing:0.02em;
+}
+.login-sub{
+  text-align:center; color:var(--text-dim); font-size:12.5px; margin-top:6px; margin-bottom:24px;
+  font-family:var(--font-mono); letter-spacing:0.04em; text-transform:uppercase;
+}
+.field{margin-bottom:14px;}
+.field label{display:block; font-size:11px; color:var(--text-dim); margin-bottom:6px; font-family:var(--font-mono); text-transform:uppercase; letter-spacing:0.06em;}
+.login-box input{
+  width:100%; background:rgba(0,0,0,0.35);
+  border:1px solid var(--line-strong);
+  padding:12px 14px; border-radius:9px; color:#fff; font-size:14px;
+  outline:none; transition:border 0.15s, box-shadow 0.15s;
+  font-family:var(--font-body);
+}
+.login-box input:focus{border-color:var(--cyan); box-shadow:0 0 0 3px rgba(34,211,238,0.12);}
+.login-box button{
+  width:100%; padding:13px; margin-top:6px;
+  background:linear-gradient(180deg, #2dd4e8, #16aec4);
+  color:#00181f; border:none; border-radius:9px;
+  font-weight:700; font-size:14px; cursor:pointer; letter-spacing:0.02em;
+  transition:filter 0.15s, transform 0.1s;
+  font-family:var(--font-display);
+}
+.login-box button:hover{filter:brightness(1.08);}
+.login-box button:active{transform:translateY(1px);}
+.error-msg{color:var(--red); font-size:12.5px; margin-top:12px; text-align:center; display:none; font-family:var(--font-mono);}
 
-        /* Top stats */
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            margin-bottom: 24px;
-        }
-        .stat-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 16px;
-            text-align: center;
-        }
-        .stat-card .label { font-size: 10px; text-transform: uppercase; color: var(--text-muted); }
-        .stat-card .value { font-size: 20px; font-weight: 700; margin-top: 4px; }
+/* ============ HEADER ============ */
+.header{
+  display:flex; justify-content:space-between; align-items:center;
+  margin-bottom:20px; flex-wrap:wrap; gap:12px;
+  padding-bottom:16px; border-bottom:1px solid var(--line);
+}
+.brand{display:flex; align-items:center; gap:12px;}
+.brand-mark{
+  width:38px; height:38px; border-radius:10px; flex-shrink:0;
+  background:var(--cyan-dim); border:1px solid rgba(34,211,238,0.35);
+  display:flex; align-items:center; justify-content:center; color:var(--cyan);
+}
+.brand h1{
+  font-family:var(--font-display); font-size:19px; font-weight:700; letter-spacing:0.01em;
+}
+.brand .tag{
+  font-family:var(--font-mono); font-size:10.5px; color:var(--text-dim);
+  text-transform:uppercase; letter-spacing:0.08em; display:flex; align-items:center; gap:6px;
+}
+.conn-dot{width:6px; height:6px; border-radius:50%; background:var(--green); box-shadow:0 0 6px var(--green);}
+.conn-dot.bad{background:var(--red); box-shadow:0 0 6px var(--red);}
+.header-buttons{display:flex; gap:8px; flex-wrap:wrap;}
+.clock{
+  font-family:var(--font-mono); font-size:13px; color:var(--text-dim);
+  padding:8px 12px; border:1px solid var(--line); border-radius:8px; background:rgba(0,0,0,0.2);
+}
+.btn{
+  border:none; border-radius:8px; font-weight:600; font-size:12.5px; padding:9px 14px;
+  cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:0.15s;
+  font-family:var(--font-body);
+}
+.btn-outline{background:transparent; border:1px solid var(--line-strong); color:var(--text-dim);}
+.btn-outline:hover{background:rgba(255,255,255,0.05); color:var(--text);}
+.btn-primary{background:var(--cyan); color:#00181f;}
+.btn-primary:hover{filter:brightness(1.1);}
+.btn-danger-outline{background:var(--red-dim); border:1px solid rgba(248,113,113,0.3); color:#fca5a5;}
+.btn-danger-outline:hover{background:rgba(248,113,113,0.22);}
 
-        /* Room grid */
-        .rooms-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 24px;
-        }
+/* ============ ALERT BANNER ============ */
+#alertBanner{display:none; margin-bottom:18px;}
+.alert-strip{
+  background:var(--red-dim); border:1px solid rgba(248,113,113,0.35); border-radius:12px;
+  padding:12px 16px; display:flex; align-items:center; gap:10px; color:#fecaca; font-size:13px;
+  animation:pulseAlert 2s ease-in-out infinite;
+}
+@keyframes pulseAlert{0%,100%{box-shadow:0 0 0 rgba(248,113,113,0);} 50%{box-shadow:0 0 18px rgba(248,113,113,0.25);}}
+.alert-strip i{color:var(--red);}
+.alert-strip b{font-family:var(--font-mono);}
 
-        .room-card {
-            background: var(--card-bg);
-            backdrop-filter: blur(12px);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 20px;
-            transition: 0.2s;
-        }
-        .room-card.offline { opacity: 0.6; }
-        .room-card.alert { border-color: rgba(239,68,68,0.4); }
+/* ============ STATS ============ */
+.stats{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px;}
+.stat-card{
+  background:linear-gradient(180deg, var(--panel-2), var(--panel));
+  border:1px solid var(--line); border-radius:var(--radius); padding:16px;
+}
+.stat-card .label{font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-dim); font-family:var(--font-mono); display:flex; align-items:center; gap:6px;}
+.stat-card .value{font-family:var(--font-mono); font-size:22px; font-weight:600; margin-top:6px; color:var(--text);}
+.stat-card .value.accent-cyan{color:var(--cyan);}
+.stat-card .value.accent-amber{color:var(--amber);}
 
-        .room-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 14px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-        .room-title {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-weight: 700;
-            font-size: 17px;
-        }
-        .online-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: var(--success);
-            box-shadow: 0 0 8px var(--success);
-            flex-shrink: 0;
-        }
-        .online-dot.offline {
-            background: var(--danger);
-            box-shadow: 0 0 8px var(--danger);
-        }
+/* ============ ROOM GRID ============ */
+.section-label{
+  font-family:var(--font-mono); font-size:11px; text-transform:uppercase; letter-spacing:0.1em;
+  color:var(--text-dim); margin:26px 0 12px; display:flex; align-items:center; gap:10px;
+}
+.section-label::after{content:""; flex:1; height:1px; background:var(--line);}
+.rooms-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:18px; margin-bottom:8px;}
 
-        .badge {
-            padding: 3px 12px;
-            border-radius: 20px;
-            font-size: 10px;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-        .badge.on { background: rgba(16,185,129,0.2); color: var(--success); }
-        .badge.off { background: rgba(239,68,68,0.2); color: var(--danger); }
+.room-card{
+  background:linear-gradient(180deg, var(--panel-2), var(--panel));
+  border:1px solid var(--line); border-radius:var(--radius);
+  padding:0; overflow:hidden; transition:border-color 0.2s, box-shadow 0.2s;
+  position:relative;
+}
+.room-card.trip{border-color:rgba(248,113,113,0.45); box-shadow:0 0 0 1px rgba(248,113,113,0.15), 0 0 30px rgba(248,113,113,0.08);}
+.room-card.offline{opacity:0.55;}
 
-        .data-row {
-            display: flex;
-            justify-content: space-between;
-            margin: 8px 0;
-            font-size: 14px;
-        }
-        .data-row .dim { color: var(--text-muted); }
+.room-header{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:16px 18px; border-bottom:1px solid var(--line);
+}
+.room-title{display:flex; align-items:center; gap:10px; font-family:var(--font-display); font-weight:600; font-size:16.5px;}
+.led{width:9px; height:9px; border-radius:50%; background:var(--green); box-shadow:0 0 8px var(--green); flex-shrink:0;}
+.led.off{background:var(--text-faint); box-shadow:none;}
+.led.offline{background:var(--red); box-shadow:0 0 8px var(--red);}
+.room-meta{font-family:var(--font-mono); font-size:10.5px; color:var(--text-faint);}
+.room-actions{display:flex; align-items:center; gap:6px;}
+.icon-btn{
+  width:28px; height:28px; border-radius:7px; border:1px solid var(--line);
+  background:rgba(255,255,255,0.03); color:var(--text-dim); cursor:pointer;
+  display:flex; align-items:center; justify-content:center; font-size:11px; transition:0.15s;
+}
+.icon-btn:hover{background:rgba(255,255,255,0.08); color:var(--text);}
 
-        .controls {
-            background: rgba(0,0,0,0.2);
-            border-radius: 14px;
-            padding: 16px;
-            margin-top: 14px;
-        }
-        .controls label {
-            display: block;
-            font-size: 11px;
-            color: var(--text-muted);
-            margin-bottom: 6px;
-        }
-        .input-row {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 12px;
-        }
-        .input-row input {
-            flex: 1;
-            background: rgba(0,0,0,0.4);
-            border: 1px solid rgba(255,255,255,0.1);
-            padding: 10px;
-            border-radius: 8px;
-            color: white;
-            font-weight: 600;
-            outline: none;
-            font-size: 13px;
-        }
-        .btn-action {
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 0 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .btn-action.watt { background: var(--warning); color: #000; }
-        .btn-quick {
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: #cbd5e1;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .btn-quick:hover { background: rgba(255,255,255,0.12); }
+.spark-wrap{padding:0 18px; margin-top:12px;}
+.spark-wrap canvas{width:100%; height:36px; display:block;}
 
-        .btn-cutoff {
-            width: 100%;
-            background: rgba(239,68,68,0.15);
-            color: #fca5a5;
-            border: 1px solid rgba(239,68,68,0.3);
-            padding: 12px;
-            border-radius: 10px;
-            font-weight: 700;
-            font-size: 14px;
-            cursor: pointer;
-            transition: 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-        }
-        .btn-cutoff.restore {
-            background: rgba(16,185,129,0.15);
-            color: var(--success);
-            border-color: rgba(16,185,129,0.3);
-        }
+.room-body{padding:14px 18px 18px;}
+.readout-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;}
+.readout{
+  background:rgba(0,0,0,0.25); border:1px solid var(--line); border-radius:10px; padding:10px 12px;
+}
+.readout .rlabel{font-size:9.5px; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-faint); font-family:var(--font-mono);}
+.readout .rval{font-family:var(--font-mono); font-size:16px; font-weight:600; margin-top:3px; color:var(--text);}
+.readout .rval small{font-size:11px; color:var(--text-dim); font-weight:400;}
 
-        /* Chart card */
-        .chart-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 24px;
-        }
+.load-bar-wrap{margin-bottom:14px;}
+.load-bar-label{display:flex; justify-content:space-between; font-family:var(--font-mono); font-size:10px; color:var(--text-dim); margin-bottom:5px;}
+.load-bar{height:6px; border-radius:4px; background:rgba(255,255,255,0.06); overflow:hidden;}
+.load-bar-fill{height:100%; border-radius:4px; background:var(--green); transition:width 0.4s ease, background 0.4s ease; width:0%;}
+.load-bar-fill.warn{background:var(--amber);}
+.load-bar-fill.crit{background:var(--red);}
 
-        /* Logs */
-        .log-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 20px;
-            overflow-x: auto;
-        }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 500px; }
-        th { text-align: left; padding: 10px; color: var(--text-muted); border-bottom: 1px solid rgba(255,255,255,0.05); }
-        td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+.cost-line{
+  display:flex; justify-content:space-between; align-items:center; font-family:var(--font-mono);
+  font-size:11.5px; color:var(--text-dim); padding:8px 0; border-top:1px dashed var(--line); margin-bottom:12px;
+}
+.cost-line b{color:var(--amber); font-size:13px;}
 
-        @media (max-width: 600px) {
-            .rooms-grid { grid-template-columns: 1fr; }
-            .stats { grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-            .stat-card .value { font-size: 18px; }
-        }
-    </style>
+.controls-block{background:rgba(0,0,0,0.2); border:1px solid var(--line); border-radius:12px; padding:14px;}
+.controls-block label{display:block; font-size:10px; color:var(--text-dim); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.06em; font-family:var(--font-mono);}
+.input-row{display:flex; gap:8px; margin-bottom:10px;}
+.input-row input{
+  flex:1; background:rgba(0,0,0,0.4); border:1px solid var(--line-strong); padding:10px; border-radius:8px;
+  color:#fff; font-weight:600; outline:none; font-size:13px; font-family:var(--font-mono);
+}
+.input-row input:focus{border-color:var(--cyan);}
+.btn-action{background:var(--cyan); color:#00181f; border:none; border-radius:8px; padding:0 14px; font-weight:700; cursor:pointer; transition:0.15s;}
+.btn-action:hover{filter:brightness(1.1);}
+.btn-action.watt{background:var(--amber);}
+.quick-row{display:flex; gap:6px; margin-bottom:12px;}
+.btn-quick{
+  background:rgba(255,255,255,0.05); border:1px solid var(--line-strong); color:#cbd5e1;
+  padding:7px 12px; border-radius:7px; font-size:11.5px; font-weight:600; cursor:pointer; transition:0.15s;
+  font-family:var(--font-mono);
+}
+.btn-quick:hover{background:rgba(255,255,255,0.1);}
+
+/* ---- breaker switch, signature element ---- */
+.breaker-row{display:flex; align-items:center; justify-content:space-between; margin-top:14px; padding-top:14px; border-top:1px solid var(--line);}
+.breaker-caption{font-family:var(--font-mono); font-size:10.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.06em;}
+.breaker{
+  --w:64px; --h:30px;
+  width:var(--w); height:var(--h); border-radius:8px; position:relative; cursor:pointer;
+  background:linear-gradient(180deg, #1c2733, #10161f);
+  border:1px solid var(--line-strong);
+  box-shadow:inset 0 2px 6px rgba(0,0,0,0.5);
+  transition:box-shadow 0.2s;
+}
+.breaker .handle{
+  position:absolute; top:3px; left:3px; width:calc(var(--h) - 6px); height:calc(var(--h) - 6px);
+  border-radius:6px; background:linear-gradient(180deg, #3a4a5c, #202b38);
+  border:1px solid rgba(255,255,255,0.08);
+  box-shadow:0 2px 4px rgba(0,0,0,0.5);
+  transition:left 0.22s cubic-bezier(.4,1.6,.6,1), background 0.22s;
+}
+.breaker.on .handle{left:calc(var(--w) - var(--h) + 3px); background:linear-gradient(180deg, #35e0b8, #0e8f6f);}
+.breaker.on{box-shadow:inset 0 2px 6px rgba(0,0,0,0.5), 0 0 16px rgba(52,211,153,0.25);}
+.breaker.off .handle{background:linear-gradient(180deg, #e05f5f, #8f1f1f);}
+.breaker.off{box-shadow:inset 0 2px 6px rgba(0,0,0,0.5), 0 0 16px rgba(248,113,113,0.2);}
+
+/* ============ CHART / LOG CARDS ============ */
+.panel-card{
+  background:linear-gradient(180deg, var(--panel-2), var(--panel));
+  border:1px solid var(--line); border-radius:var(--radius); padding:20px; margin-bottom:20px;
+}
+.panel-title{
+  display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:10px;
+}
+.panel-title h3{font-family:var(--font-mono); font-size:12px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-dim); display:flex; align-items:center; gap:8px;}
+
+.log-tools{display:flex; gap:8px; flex-wrap:wrap;}
+.log-tools select, .log-tools input{
+  background:rgba(0,0,0,0.35); border:1px solid var(--line-strong); color:var(--text);
+  padding:7px 10px; border-radius:7px; font-size:12px; outline:none; font-family:var(--font-body);
+}
+table{width:100%; border-collapse:collapse; font-size:12.5px; min-width:520px;}
+th{text-align:left; padding:10px; color:var(--text-dim); border-bottom:1px solid var(--line); font-family:var(--font-mono); text-transform:uppercase; font-size:10.5px; letter-spacing:0.06em;}
+td{padding:10px; border-bottom:1px solid rgba(255,255,255,0.03); font-family:var(--font-mono);}
+.log-card-scroll{overflow-x:auto;}
+.empty-row td{text-align:center; color:var(--text-faint); padding:30px; font-family:var(--font-body);}
+
+/* ============ MODALS ============ */
+.modal-overlay{
+  position:fixed; inset:0; background:rgba(3,6,10,0.7); backdrop-filter:blur(4px);
+  display:none; align-items:center; justify-content:center; z-index:200; padding:20px;
+}
+.modal-overlay.show{display:flex;}
+.modal-box{
+  width:100%; max-width:400px; background:linear-gradient(180deg, var(--panel-2), var(--panel));
+  border:1px solid var(--line-strong); border-radius:var(--radius); padding:26px;
+  box-shadow:0 30px 60px rgba(0,0,0,0.5);
+}
+.modal-box h3{font-family:var(--font-display); font-size:17px; margin-bottom:8px;}
+.modal-box p{font-size:13px; color:var(--text-dim); margin-bottom:18px; line-height:1.5;}
+.modal-actions{display:flex; gap:10px; justify-content:flex-end; margin-top:20px;}
+.modal-box .field input{width:100%;}
+
+/* ============ TOASTS ============ */
+#toastHost{position:fixed; bottom:20px; right:20px; z-index:300; display:flex; flex-direction:column; gap:8px; max-width:320px;}
+.toast{
+  background:var(--panel-2); border:1px solid var(--line-strong); border-radius:10px; padding:12px 14px;
+  font-size:13px; display:flex; align-items:center; gap:10px; box-shadow:0 10px 30px rgba(0,0,0,0.4);
+  animation:toastIn 0.25s ease;
+}
+@keyframes toastIn{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;}}
+.toast i{font-size:14px;}
+.toast.success i{color:var(--green);}
+.toast.error i{color:var(--red);}
+.toast.info i{color:var(--cyan);}
+
+@media (max-width:700px){
+  .stats{grid-template-columns:1fr 1fr;}
+  .rooms-grid{grid-template-columns:1fr;}
+  .readout-grid{grid-template-columns:1fr 1fr;}
+}
+</style>
 </head>
 <body>
 
-    <!-- Login Screen -->
-    <div id="loginScreen" class="login-box">
-        <h2><i class="fa-solid fa-shield-halved" style="color: var(--primary);"></i> Admin Login</h2>
-        <div>
-            <input type="email" id="loginEmail" placeholder="Email">
-            <input type="password" id="loginPassword" placeholder="Password">
-            <button onclick="handleLogin()"><i class="fa-solid fa-right-to-bracket"></i> Sign In</button>
-            <p id="loginError" class="error-msg"></p>
-        </div>
+<!-- ============ LOGIN ============ -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-mark"><i class="fa-solid fa-bolt"></i></div>
+    <h2>GRIDWATCH</h2>
+    <p class="login-sub">Hall Power Control · Admin Access</p>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="loginEmail" placeholder="admin@hall.local" autocomplete="username">
     </div>
-
-    <!-- Main Dashboard -->
-    <div class="container" id="adminDashboard" style="display:none;">
-        <div class="header">
-            <h1><i class="fa-solid fa-bolt"></i> Hall Power Command</h1>
-            <div class="header-buttons">
-                <button class="btn btn-outline" onclick="handleLogout()"><i class="fa-solid fa-power-off"></i> Logout</button>
-                <button class="btn btn-danger-outline" onclick="masterSystemReset()"><i class="fa-solid fa-rotate-left"></i> Reset</button>
-            </div>
-        </div>
-
-        <div class="stats">
-            <div class="stat-card"><div class="label">Active Rooms</div><div class="value" id="activeRooms">0</div></div>
-            <div class="stat-card"><div class="label">Total Load</div><div class="value" id="totalPower">0 W</div></div>
-            <div class="stat-card"><div class="label">Log Entries</div><div class="value" id="totalLogs">0</div></div>
-        </div>
-
-        <div class="rooms-grid" id="roomsContainer">
-            <!-- Dynamically generated by JS -->
-        </div>
-
-        <div class="chart-card">
-            <h3 style="margin:0 0 15px; font-size:13px; text-transform:uppercase; color:var(--text-muted);"><i class="fa-solid fa-chart-bar"></i> Consumption Overview</h3>
-            <div style="position:relative; height:200px;"><canvas id="liveChart"></canvas></div>
-        </div>
-
-        <div class="log-card">
-            <h3 style="margin:0 0 15px; font-size:13px; text-transform:uppercase; color:var(--text-muted);"><i class="fa-solid fa-clock-history"></i> Recent Activity</h3>
-            <table><thead><tr><th>Time</th><th>Room</th><th>Action</th><th>Value</th></tr></thead><tbody id="logBody"></tbody></table>
-        </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
     </div>
+    <button onclick="handleLogin()" id="loginBtn"><i class="fa-solid fa-right-to-bracket"></i> Sign In</button>
+    <p id="loginError" class="error-msg"></p>
+  </div>
+</div>
 
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyC8NcbOPzhbUnm9NxOZyzdEJSLk_LOGYcc",
-            authDomain: "irza-labs.firebaseapp.com",
-            databaseURL: "https://irza-labs-default-rtdb.firebaseio.com",
-            projectId: "irza-labs",
-            storageBucket: "irza-labs.firebasestorage.app",
-            messagingSenderId: "269557073409",
-            appId: "1:269557073409:web:4c2977681884d733f62200"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+<!-- ============ DASHBOARD ============ -->
+<div class="container" id="adminDashboard" style="display:none;">
 
-        // ============ GLOBAL STATE ============
-        const rooms = ['room1', 'room2'];
-        const roomData = {};
-        rooms.forEach(r => roomData[r] = {
-            power:0, status:"OFF", current:0, allocated:0,
-            manual_cutoff:false, voltage:0, max_watt_limit:0,
-            lastUpdate:0
-        });
-        let chart;
+  <div class="header">
+    <div class="brand">
+      <div class="brand-mark"><i class="fa-solid fa-bolt"></i></div>
+      <div>
+        <h1>GRIDWATCH</h1>
+        <div class="tag"><span class="conn-dot" id="connDot"></span> <span id="connText">Connecting…</span></div>
+      </div>
+    </div>
+    <div class="header-buttons">
+      <div class="clock" id="clock">--:--:--</div>
+      <button class="btn btn-outline" onclick="openSettings()"><i class="fa-solid fa-sliders"></i> Settings</button>
+      <button class="btn btn-outline" onclick="openAddRoom()"><i class="fa-solid fa-plus"></i> Room</button>
+      <button class="btn btn-danger-outline" onclick="confirmMasterReset()"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+      <button class="btn btn-outline" onclick="handleLogout()"><i class="fa-solid fa-power-off"></i> Logout</button>
+    </div>
+  </div>
 
-        // ============ INIT CHART ============
-        function initChart() {
-            const ctx = document.getElementById('liveChart').getContext('2d');
-            chart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['Room 01', 'Room 02'],
-                    datasets: [{
-                        label: 'kWh Used',
-                        data: [0, 0],
-                        backgroundColor: ['rgba(59,130,246,0.6)', 'rgba(168,85,247,0.6)'],
-                        borderColor: ['#3b82f6', '#a855f7'],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
-                        x: { ticks: { color: '#94a3b8' } }
-                    },
-                    plugins: { legend: { display: false } }
-                }
-            });
-        }
+  <div id="alertBanner">
+    <div class="alert-strip"><i class="fa-solid fa-triangle-exclamation"></i> <span id="alertText"></span></div>
+  </div>
 
-        // ============ LOGIN ============
-        function handleLogin() {
-            const email = document.getElementById('loginEmail').value;
-            const pass = document.getElementById('loginPassword').value;
-            firebase.auth().signInWithEmailAndPassword(email, pass)
-                .then(() => {
-                    document.getElementById('loginScreen').style.display = 'none';
-                    document.getElementById('adminDashboard').style.display = 'block';
-                    initChart();
-                    rooms.forEach(r => listenToRoom(r));
-                    listenToLogs();
-                    setInterval(checkOnlineStatus, 2000);
-                })
-                .catch(() => {
-                    document.getElementById('loginError').innerText = 'Invalid credentials!';
-                    document.getElementById('loginError').style.display = 'block';
-                });
-        }
+  <div class="stats">
+    <div class="stat-card"><div class="label"><i class="fa-solid fa-door-open"></i> Active Rooms</div><div class="value" id="activeRooms">0</div></div>
+    <div class="stat-card"><div class="label"><i class="fa-solid fa-gauge-high"></i> Total Load</div><div class="value accent-cyan" id="totalPower">0 W</div></div>
+    <div class="stat-card"><div class="label"><i class="fa-solid fa-coins"></i> Est. Cost</div><div class="value accent-amber" id="totalCost">—</div></div>
+    <div class="stat-card"><div class="label"><i class="fa-solid fa-list"></i> Log Entries</div><div class="value" id="totalLogs">0</div></div>
+  </div>
 
-        function handleLogout() {
-            firebase.auth().signOut().then(() => location.reload());
-        }
+  <div class="section-label">Breaker Panels</div>
+  <div class="rooms-grid" id="roomsContainer"><!-- built by JS --></div>
 
-        // ============ LISTEN TO ROOM DATA ============
-        function listenToRoom(roomName) {
-            db.ref('rooms/' + roomName).on('value', snap => {
-                const data = snap.val();
-                if (!data) return;
-                const rd = roomData[roomName];
-                rd.power = data.power || 0;
-                rd.status = data.status || "OFF";
-                rd.allocated = data.allocated_units || 0;
-                rd.current = data.current_units || 0;
-                rd.voltage = data.voltage || 0;
-                rd.manual_cutoff = data.manual_cutoff === true;
-                rd.max_watt_limit = data.max_watt_limit || 0;   // FIX: store watt limit
-                rd.lastUpdate = Date.now();
+  <div class="panel-card">
+    <div class="panel-title"><h3><i class="fa-solid fa-chart-column"></i> Consumption Overview</h3></div>
+    <div style="position:relative; height:220px;"><canvas id="liveChart"></canvas></div>
+  </div>
 
-                updateRoomUI(roomName);
-                updateChart();
-                updateGlobalStats();
-            });
-        }
+  <div class="panel-card log-card-scroll">
+    <div class="panel-title">
+      <h3><i class="fa-solid fa-terminal"></i> Activity Log</h3>
+      <div class="log-tools">
+        <select id="logRoomFilter" onchange="renderLogs()"><option value="">All rooms</option></select>
+        <input type="text" id="logSearch" placeholder="Search…" oninput="renderLogs()">
+        <button class="btn btn-outline" onclick="exportLogsCSV()"><i class="fa-solid fa-download"></i> CSV</button>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>Time</th><th>Room</th><th>Action</th><th>Value</th></tr></thead>
+      <tbody id="logBody"></tbody>
+    </table>
+  </div>
+</div>
 
-        function updateRoomUI(roomName) {
-            const rd = roomData[roomName];
-            const card = document.getElementById(`card-${roomName}`);
-            if (!card) return;
+<!-- ============ MODAL: CONFIRM ============ -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal-box">
+    <h3 id="confirmTitle">Confirm</h3>
+    <p id="confirmBody"></p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('confirmModal')">Cancel</button>
+      <button class="btn btn-danger-outline" id="confirmActionBtn">Confirm</button>
+    </div>
+  </div>
+</div>
 
-            // Online dot
-            const dot = card.querySelector('.online-dot');
-            if (dot) {
-                const online = (Date.now() - rd.lastUpdate) < 5000;
-                dot.className = 'online-dot' + (online ? '' : ' offline');
-            }
+<!-- ============ MODAL: ADD ROOM ============ -->
+<div class="modal-overlay" id="addRoomModal">
+  <div class="modal-box">
+    <h3><i class="fa-solid fa-plug"></i> Add Room</h3>
+    <p>Register a new breaker panel. The room ID must match the ESP32 firmware's ROOM constant exactly (e.g. <code>room3</code>).</p>
+    <div class="field"><label>Room ID</label><input type="text" id="newRoomId" placeholder="room3"></div>
+    <div class="field"><label>Display Name</label><input type="text" id="newRoomName" placeholder="Room 03"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('addRoomModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitAddRoom()">Add Room</button>
+    </div>
+  </div>
+</div>
 
-            // Badge & status
-            const badge = card.querySelector('.badge');
-            const statusText = rd.status.includes("ON") ? "ON" : "OFF";
-            badge.innerText = statusText;
-            badge.className = 'badge ' + (statusText === 'ON' ? 'on' : 'off');
+<!-- ============ MODAL: SETTINGS ============ -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal-box">
+    <h3><i class="fa-solid fa-sliders"></i> Billing Settings</h3>
+    <p>Set the electricity rate used to estimate cost per room.</p>
+    <div class="field"><label>Currency Symbol</label><input type="text" id="settingsCurrency" placeholder="৳"></div>
+    <div class="field"><label>Rate per kWh</label><input type="number" id="settingsRate" step="0.01" placeholder="e.g. 8.5"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('settingsModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitSettings()">Save</button>
+    </div>
+  </div>
+</div>
 
-            // Data fields
-            card.querySelector('.curr-val').innerText = rd.current.toFixed(2) + " kWh";
-            card.querySelector('.alloc-val').innerText = rd.allocated.toFixed(2) + " kWh";
-            card.querySelector('.power-val').innerText = rd.power.toFixed(1) + " W";
-            // FIX: use rd.max_watt_limit instead of data.max_watt_limit
-            card.querySelector('.watt-limit-val').innerText = (rd.max_watt_limit || 0) + " W";
-            card.querySelector('.volt-val').innerText = rd.voltage.toFixed(1) + " V";
+<div id="toastHost"></div>
 
-            // Cutoff button
-            const cutBtn = card.querySelector('.btn-cutoff');
-            if (rd.manual_cutoff) {
-                cutBtn.innerHTML = '<i class="fa-solid fa-rotate-left"></i> Restore Power';
-                cutBtn.className = 'btn-cutoff restore';
-                cutBtn.onclick = () => toggleCutoff(roomName, false);
-                card.classList.add('alert');
-            } else {
-                cutBtn.innerHTML = '<i class="fa-solid fa-power-off"></i> Shutdown';
-                cutBtn.className = 'btn-cutoff';
-                cutBtn.onclick = () => toggleCutoff(roomName, true);
-                card.classList.remove('alert');
-            }
-        }
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyC8NcbOPzhbUnm9NxOZyzdEJSLk_LOGYcc",
+  authDomain: "irza-labs.firebaseapp.com",
+  databaseURL: "https://irza-labs-default-rtdb.firebaseio.com",
+  projectId: "irza-labs",
+  storageBucket: "irza-labs.firebasestorage.app",
+  messagingSenderId: "269557073409",
+  appId: "1:269557073409:web:4c2977681884d733f62200"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-        function checkOnlineStatus() {
-            rooms.forEach(r => {
-                const rd = roomData[r];
-                const dot = document.querySelector(`#card-${r} .online-dot`);
-                if (dot) {
-                    const online = (Date.now() - rd.lastUpdate) < 5000;
-                    dot.className = 'online-dot' + (online ? '' : ' offline');
-                }
-            });
-        }
+// ============ GLOBAL STATE ============
+let roomsConfig = {};      // roomId -> { name }
+const roomData = {};       // roomId -> live readings
+const sparkHistory = {};   // roomId -> [power,...]
+const tripState = {};      // roomId -> bool (currently in overload/limit state)
+const allLogs = {};        // pushKey -> log object
+let chart;
+let settings = { currency: '৳', rate: 0 };
+const CHART_COLORS = ['#22d3ee', '#a78bfa', '#fbbf24', '#34d399', '#f87171', '#60a5fa'];
+const MAX_SPARK_POINTS = 30;
 
-        function updateChart() {
-            chart.data.datasets[0].data = [roomData.room1.current, roomData.room2.current];
-            chart.update();
-        }
+// ============ TOASTS ============
+function showToast(message, type = 'info') {
+  const icons = { success: 'fa-circle-check', error: 'fa-circle-exclamation', info: 'fa-circle-info' };
+  const host = document.getElementById('toastHost');
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.innerHTML = `<i class="fa-solid ${icons[type] || icons.info}"></i><span>${message}</span>`;
+  host.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .3s'; setTimeout(() => el.remove(), 300); }, 3800);
+}
 
-        function updateGlobalStats() {
-            let totalPower = roomData.room1.power + roomData.room2.power;
-            let activeCount = (roomData.room1.status.includes("ON") ? 1 : 0) + (roomData.room2.status.includes("ON") ? 1 : 0);
-            document.getElementById('activeRooms').innerText = activeCount;
-            document.getElementById('totalPower').innerText = totalPower.toFixed(1) + " W";
-        }
+// ============ MODAL HELPERS ============
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+function confirmAction(title, body, onConfirm) {
+  document.getElementById('confirmTitle').innerText = title;
+  document.getElementById('confirmBody').innerText = body;
+  const btn = document.getElementById('confirmActionBtn');
+  const freshBtn = btn.cloneNode(true);
+  btn.parentNode.replaceChild(freshBtn, btn);
+  freshBtn.addEventListener('click', () => { onConfirm(); closeModal('confirmModal'); });
+  openModal('confirmModal');
+}
 
-        // ============ CONTROL FUNCTIONS ============
-        function updateLimit(roomName) {
-            const input = document.getElementById(`input-${roomName}`);
-            const val = parseFloat(input.value);
-            if (!isNaN(val) && val >= 0) {
-                db.ref('rooms/' + roomName).update({ allocated_units: val });
-                writeLog(roomName, "kWh Set", val + " kWh");
-                input.value = '';
-            }
-        }
+// ============ CLOCK ============
+function updateClock() {
+  const el = document.getElementById('clock');
+  if (el) el.innerText = new Date().toLocaleTimeString();
+}
 
-        function quickAdd(roomName, amount) {
-            const current = roomData[roomName].allocated || 0;
-            db.ref('rooms/' + roomName).update({ allocated_units: current + amount });
-            writeLog(roomName, "+" + amount + " kWh", (current + amount) + " kWh");
-        }
+// ============ CHART ============
+function initChart() {
+  const ctx = document.getElementById('liveChart').getContext('2d');
+  chart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: [], datasets: [{ label: 'kWh Used', data: [], backgroundColor: [], borderColor: [], borderWidth: 1, borderRadius: 6 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8996a6', font: { family: 'IBM Plex Mono' } } },
+        x: { grid: { display: false }, ticks: { color: '#8996a6', font: { family: 'IBM Plex Mono' } } }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+function updateChart() {
+  if (!chart) return;
+  const ids = Object.keys(roomsConfig);
+  chart.data.labels = ids.map(id => roomsConfig[id].name);
+  chart.data.datasets[0].data = ids.map(id => (roomData[id] ? roomData[id].current : 0));
+  chart.data.datasets[0].backgroundColor = ids.map((_, i) => CHART_COLORS[i % CHART_COLORS.length] + '99');
+  chart.data.datasets[0].borderColor = ids.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]);
+  chart.update();
+}
 
-        function updateWattLimit(roomName) {
-            const input = document.getElementById(`watt-input-${roomName}`);
-            const val = parseFloat(input.value);
-            if (!isNaN(val) && val >= 0) {
-                db.ref('rooms/' + roomName).update({ max_watt_limit: val });
-                writeLog(roomName, "Watt Limit", val + " W");
-                input.value = '';
-            }
-        }
+// ============ AUTH ============
+function handleLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPassword').value;
+  const btn = document.getElementById('loginBtn');
+  if (!email || !pass) {
+    showLoginError('Enter both email and password.');
+    return;
+  }
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Signing in…';
+  firebase.auth().signInWithEmailAndPassword(email, pass)
+    .catch(err => {
+      let msg = 'Sign-in failed. Check your credentials.';
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') msg = 'Invalid email or password.';
+      else if (err.code === 'auth/too-many-requests') msg = 'Too many attempts. Try again shortly.';
+      else if (err.code === 'auth/network-request-failed') msg = 'Network error — check your connection.';
+      showLoginError(msg);
+    })
+    .finally(() => { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Sign In'; });
+}
+function showLoginError(msg) {
+  const el = document.getElementById('loginError');
+  el.innerText = msg; el.style.display = 'block';
+}
+function handleLogout() { firebase.auth().signOut(); }
 
-        function toggleCutoff(roomName, status) {
-            db.ref('rooms/' + roomName).update({ manual_cutoff: status });
-            writeLog(roomName, status ? "Shutdown" : "Restore", "manual");
-        }
+let bootDone = false;
+firebase.auth().onAuthStateChanged(user => {
+  if (user) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('adminDashboard').style.display = 'block';
+    if (!bootDone) { bootDone = true; bootDashboard(); }
+  } else {
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('adminDashboard').style.display = 'none';
+  }
+});
 
-        function masterSystemReset() {
-            if (confirm("Reset all rooms & logs?")) {
-                rooms.forEach(r => db.ref('rooms/' + r).update({ current_units:0, manual_cutoff:false, allocated_units:0, max_watt_limit:0 }));
-                db.ref('allocation_logs').remove();
-                alert("System reset.");
-            }
-        }
+// ============ CONNECTION STATUS ============
+function watchConnection() {
+  db.ref('.info/connected').on('value', snap => {
+    const dot = document.getElementById('connDot');
+    const text = document.getElementById('connText');
+    if (snap.val() === true) { dot.classList.remove('bad'); text.innerText = 'Live'; }
+    else { dot.classList.add('bad'); text.innerText = 'Reconnecting…'; }
+  });
+}
 
-        // ============ LOGGING ============
-        function writeLog(room, type, val) {
-            const now = new Date();
-            const timeStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
-            db.ref('allocation_logs').push({
-                timestamp: firebase.database.ServerValue.TIMESTAMP,
-                time: timeStr,
-                room: room,
-                type: type,
-                units: val
-            });
-        }
+// ============ BOOTSTRAP ============
+function bootDashboard() {
+  initChart();
+  watchConnection();
+  updateClock(); setInterval(updateClock, 1000);
+  setInterval(checkOnlineStatus, 2000);
 
-        function listenToLogs() {
-            db.ref('allocation_logs').orderByChild('timestamp').limitToLast(10).on('value', snap => {
-                const tbody = document.getElementById('logBody');
-                tbody.innerHTML = '';
-                let count = 0;
-                snap.forEach(child => {
-                    const log = child.val();
-                    count++;
-                    const row = `<tr>
-                        <td>${log.time}</td>
-                        <td style="font-weight:600;color:var(--primary);">${log.room.toUpperCase()}</td>
-                        <td>${log.type}</td>
-                        <td>${log.units}</td>
-                    </tr>`;
-                    tbody.insertAdjacentHTML('afterbegin', row);
-                });
-                document.getElementById('totalLogs').innerText = count;
-            });
-        }
+  db.ref('system/settings').on('value', snap => {
+    const v = snap.val();
+    if (v) { settings = { currency: v.currency || '৳', rate: v.rate || 0 }; }
+    updateGlobalStats();
+    Object.keys(roomsConfig).forEach(updateRoomUI);
+  });
 
-        // ============ BUILD ROOM CARDS (dynamic) ============
-        function buildRoomCard(roomName) {
-            const displayName = roomName === 'room1' ? 'Room 01' : 'Room 02';
-            return `
-                <div class="room-card" id="card-${roomName}">
-                    <div class="room-header">
-                        <div class="room-title">
-                            <span class="online-dot offline"></span>
-                            ${displayName}
-                        </div>
-                        <span class="badge off">OFF</span>
-                    </div>
-                    <div class="data-row"><span class="dim">Used</span> <span class="curr-val">0.00 kWh</span></div>
-                    <div class="data-row"><span class="dim">Allocated</span> <span class="alloc-val">0.00 kWh</span></div>
-                    <div class="data-row"><span class="dim">Power / Limit</span> <span><span class="power-val">0 W</span> / <span class="watt-limit-val">0 W</span></span></div>
-                    <div class="data-row"><span class="dim">Voltage</span> <span class="volt-val">0 V</span></div>
-                    <div class="controls">
-                        <label>Energy Limit (kWh)</label>
-                        <div class="input-row">
-                            <input type="number" id="input-${roomName}" step="0.5" placeholder="kWh" style="flex:1;">
-                            <button class="btn-action" onclick="updateLimit('${roomName}')"><i class="fa-solid fa-floppy-disk"></i></button>
-                        </div>
-                        <div style="display:flex; gap:6px; margin-bottom:12px;">
-                            <button class="btn-quick" onclick="quickAdd('${roomName}',5)">+5 kWh</button>
-                            <button class="btn-quick" onclick="quickAdd('${roomName}',10)">+10 kWh</button>
-                        </div>
-                        <label>Watt Limit (W)</label>
-                        <div class="input-row">
-                            <input type="number" id="watt-input-${roomName}" placeholder="Watts">
-                            <button class="btn-action watt" onclick="updateWattLimit('${roomName}')"><i class="fa-solid fa-bolt"></i></button>
-                        </div>
-                        <button class="btn-cutoff" onclick="toggleCutoff('${roomName}', true)"><i class="fa-solid fa-power-off"></i> Shutdown</button>
-                    </div>
-                </div>
-            `;
-        }
+  db.ref('system/rooms').once('value').then(snap => {
+    let cfg = snap.val();
+    if (!cfg) {
+      cfg = { room1: { name: 'Room 01' }, room2: { name: 'Room 02' } };
+      db.ref('system/rooms').set(cfg);
+    }
+    roomsConfig = cfg;
+    Object.keys(roomsConfig).forEach(initRoom);
+    db.ref('system/rooms').on('child_added', s => {
+      if (!roomsConfig[s.key]) { roomsConfig[s.key] = s.val(); initRoom(s.key); }
+    });
+    db.ref('system/rooms').on('child_removed', s => { removeRoomCard(s.key); delete roomsConfig[s.key]; });
+    listenToLogs();
+  });
+}
 
-        // Build room cards on load
-        document.getElementById('roomsContainer').innerHTML = rooms.map(r => buildRoomCard(r)).join('');
-    </script>
+function initRoom(roomId) {
+  roomData[roomId] = { power: 0, status: 'OFF', current: 0, allocated: 0, manual_cutoff: false, voltage: 0, max_watt_limit: 0, lastUpdate: 0, seen: false };
+  sparkHistory[roomId] = [];
+  tripState[roomId] = false;
+  buildRoomCard(roomId);
+  listenToRoom(roomId);
+  populateLogRoomFilter();
+}
+
+// ============ ROOM LISTENERS ============
+function listenToRoom(roomId) {
+  db.ref('rooms/' + roomId).on('value', snap => {
+    const data = snap.val();
+    if (!data) return;
+    const rd = roomData[roomId];
+    rd.power = data.power || 0;
+    rd.status = data.status || 'OFF';
+    rd.allocated = data.allocated_units || 0;
+    rd.current = data.current_units || 0;
+    rd.voltage = data.voltage || 0;
+    rd.manual_cutoff = data.manual_cutoff === true;
+    rd.max_watt_limit = data.max_watt_limit || 0;
+    rd.lastUpdate = Date.now();
+    rd.seen = true;
+
+    const hist = sparkHistory[roomId];
+    hist.push(rd.power);
+    if (hist.length > MAX_SPARK_POINTS) hist.shift();
+
+    const isTripped = /overload|limit exceeded/i.test(rd.status);
+    if (isTripped && !tripState[roomId]) showToast(`${roomsConfig[roomId].name}: ${rd.status}`, 'error');
+    tripState[roomId] = isTripped;
+
+    updateRoomUI(roomId);
+    updateChart();
+    updateGlobalStats();
+    updateAlertBanner();
+  });
+}
+
+// ============ UI RENDER ============
+function buildRoomCard(roomId) {
+  const name = (roomsConfig[roomId] && roomsConfig[roomId].name) || roomId;
+  const wrap = document.createElement('div');
+  wrap.className = 'room-card';
+  wrap.id = `card-${roomId}`;
+  wrap.innerHTML = `
+    <div class="room-header">
+      <div class="room-title"><span class="led off"></span> ${name}</div>
+      <div class="room-actions">
+        <span class="room-meta" id="seen-${roomId}">no data yet</span>
+        <button class="icon-btn" title="Remove room" onclick="confirmRemoveRoom('${roomId}')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    </div>
+    <div class="spark-wrap"><canvas id="spark-${roomId}"></canvas></div>
+    <div class="room-body">
+      <div class="readout-grid">
+        <div class="readout"><div class="rlabel">Used</div><div class="rval curr-val">0.00 <small>kWh</small></div></div>
+        <div class="readout"><div class="rlabel">Allocated</div><div class="rval alloc-val">0.00 <small>kWh</small></div></div>
+        <div class="readout"><div class="rlabel">Power</div><div class="rval power-val">0 <small>W</small></div></div>
+        <div class="readout"><div class="rlabel">Voltage</div><div class="rval volt-val">0 <small>V</small></div></div>
+      </div>
+
+      <div class="load-bar-wrap">
+        <div class="load-bar-label"><span>Watt limit usage</span><span class="watt-limit-val">0 W cap</span></div>
+        <div class="load-bar"><div class="load-bar-fill" id="loadbar-${roomId}"></div></div>
+      </div>
+
+      <div class="cost-line"><span>Est. cost so far</span><b class="cost-val">—</b></div>
+
+      <div class="controls-block">
+        <label>Energy Limit (kWh)</label>
+        <div class="input-row">
+          <input type="number" id="input-${roomId}" step="0.5" placeholder="kWh">
+          <button class="btn-action" onclick="updateLimit('${roomId}')"><i class="fa-solid fa-floppy-disk"></i></button>
+        </div>
+        <div class="quick-row">
+          <button class="btn-quick" onclick="quickAdd('${roomId}',5)">+5 kWh</button>
+          <button class="btn-quick" onclick="quickAdd('${roomId}',10)">+10 kWh</button>
+          <button class="btn-quick" onclick="quickAdd('${roomId}',20)">+20 kWh</button>
+        </div>
+        <label>Watt Limit (W)</label>
+        <div class="input-row">
+          <input type="number" id="watt-input-${roomId}" placeholder="Watts">
+          <button class="btn-action watt" onclick="updateWattLimit('${roomId}')"><i class="fa-solid fa-bolt"></i></button>
+        </div>
+
+        <div class="breaker-row">
+          <span class="breaker-caption">Circuit breaker</span>
+          <div class="breaker off" id="breaker-${roomId}" tabindex="0" role="switch" aria-checked="false"
+               onclick="handleBreakerClick('${roomId}')"
+               onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault(); handleBreakerClick('${roomId}');}">
+            <div class="handle"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('roomsContainer').appendChild(wrap);
+}
+
+function removeRoomCard(roomId) {
+  const card = document.getElementById(`card-${roomId}`);
+  if (card) card.remove();
+  populateLogRoomFilter();
+}
+
+function drawSparkline(roomId) {
+  const canvas = document.getElementById(`spark-${roomId}`);
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth || 280, h = 36;
+  canvas.width = w * dpr; canvas.height = h * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  const data = sparkHistory[roomId];
+  if (!data || data.length < 2) return;
+  const max = Math.max(...data, 10);
+  const step = w / (MAX_SPARK_POINTS - 1);
+  const offset = MAX_SPARK_POINTS - data.length;
+  ctx.beginPath();
+  data.forEach((v, i) => {
+    const x = (offset + i) * step;
+    const y = h - (v / max) * (h - 4) - 2;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = '#22d3ee';
+  ctx.lineWidth = 1.6;
+  ctx.stroke();
+  ctx.lineTo((offset + data.length - 1) * step, h);
+  ctx.lineTo(offset * step, h);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(34,211,238,0.08)';
+  ctx.fill();
+}
+
+function updateRoomUI(roomId) {
+  const rd = roomData[roomId];
+  const card = document.getElementById(`card-${roomId}`);
+  if (!card || !rd) return;
+
+  const online = (Date.now() - rd.lastUpdate) < 5000;
+  const led = card.querySelector('.led');
+  const statusOn = rd.status.includes('ON');
+  led.className = 'led ' + (!online ? 'offline' : (statusOn ? '' : 'off'));
+  card.classList.toggle('offline', !online);
+  card.classList.toggle('trip', /overload|limit exceeded/i.test(rd.status));
+
+  const seenEl = document.getElementById(`seen-${roomId}`);
+  if (seenEl) seenEl.innerText = online ? rd.status : 'offline';
+
+  card.querySelector('.curr-val').innerHTML = rd.current.toFixed(2) + ' <small>kWh</small>';
+  card.querySelector('.alloc-val').innerHTML = rd.allocated.toFixed(2) + ' <small>kWh</small>';
+  card.querySelector('.power-val').innerHTML = rd.power.toFixed(1) + ' <small>W</small>';
+  card.querySelector('.volt-val').innerHTML = rd.voltage.toFixed(1) + ' <small>V</small>';
+  card.querySelector('.watt-limit-val').innerText = (rd.max_watt_limit || 0) + ' W cap';
+
+  const pct = rd.max_watt_limit > 0 ? Math.min(100, (rd.power / rd.max_watt_limit) * 100) : 0;
+  const bar = document.getElementById(`loadbar-${roomId}`);
+  bar.style.width = pct + '%';
+  bar.className = 'load-bar-fill' + (pct >= 90 ? ' crit' : pct >= 70 ? ' warn' : '');
+
+  const cost = rd.current * (settings.rate || 0);
+  card.querySelector('.cost-val').innerText = settings.rate > 0 ? `${settings.currency}${cost.toFixed(2)}` : '—';
+
+  const breaker = document.getElementById(`breaker-${roomId}`);
+  if (rd.manual_cutoff) {
+    breaker.classList.remove('on'); breaker.classList.add('off');
+    breaker.setAttribute('aria-checked', 'false');
+  } else {
+    breaker.classList.remove('off'); breaker.classList.add('on');
+    breaker.setAttribute('aria-checked', 'true');
+  }
+
+  drawSparkline(roomId);
+}
+
+function checkOnlineStatus() { Object.keys(roomsConfig).forEach(updateRoomUI); }
+
+function updateGlobalStats() {
+  const ids = Object.keys(roomsConfig);
+  let totalPower = 0, activeCount = 0, totalCost = 0;
+  ids.forEach(id => {
+    const rd = roomData[id];
+    if (!rd) return;
+    totalPower += rd.power;
+    if (rd.status.includes('ON')) activeCount++;
+    totalCost += rd.current * (settings.rate || 0);
+  });
+  document.getElementById('activeRooms').innerText = activeCount;
+  document.getElementById('totalPower').innerText = totalPower.toFixed(1) + ' W';
+  document.getElementById('totalCost').innerText = settings.rate > 0 ? `${settings.currency}${totalCost.toFixed(2)}` : '—';
+}
+
+function updateAlertBanner() {
+  const tripped = Object.keys(tripState).filter(id => tripState[id]);
+  const banner = document.getElementById('alertBanner');
+  if (tripped.length === 0) { banner.style.display = 'none'; return; }
+  const names = tripped.map(id => roomsConfig[id].name).join(', ');
+  document.getElementById('alertText').innerHTML = `Active trip on <b>${names}</b> — power cut automatically by protection logic.`;
+  banner.style.display = 'block';
+}
+
+// ============ ROOM CONTROLS ============
+function updateLimit(roomId) {
+  const input = document.getElementById(`input-${roomId}`);
+  const val = parseFloat(input.value);
+  if (!isNaN(val) && val >= 0) {
+    db.ref('rooms/' + roomId).update({ allocated_units: val });
+    writeLog(roomId, 'kWh Set', val + ' kWh');
+    input.value = '';
+    showToast(`${roomsConfig[roomId].name} energy limit set to ${val} kWh`, 'success');
+  }
+}
+function quickAdd(roomId, amount) {
+  const current = (roomData[roomId] && roomData[roomId].allocated) || 0;
+  const next = current + amount;
+  db.ref('rooms/' + roomId).update({ allocated_units: next });
+  writeLog(roomId, '+' + amount + ' kWh', next + ' kWh');
+  showToast(`Added ${amount} kWh to ${roomsConfig[roomId].name}`, 'success');
+}
+function updateWattLimit(roomId) {
+  const input = document.getElementById(`watt-input-${roomId}`);
+  const val = parseFloat(input.value);
+  if (!isNaN(val) && val >= 0) {
+    db.ref('rooms/' + roomId).update({ max_watt_limit: val });
+    writeLog(roomId, 'Watt Limit', val + ' W');
+    input.value = '';
+    showToast(`${roomsConfig[roomId].name} watt limit set to ${val} W`, 'success');
+  }
+}
+function handleBreakerClick(roomId) {
+  const goingOff = !roomData[roomId].manual_cutoff;
+  toggleCutoff(roomId, goingOff);
+}
+function toggleCutoff(roomId, status) {
+  db.ref('rooms/' + roomId).update({ manual_cutoff: status });
+  writeLog(roomId, status ? 'Shutdown' : 'Restore', 'manual');
+  showToast(`${roomsConfig[roomId].name} ${status ? 'shut down' : 'restored'}`, status ? 'error' : 'success');
+}
+
+function confirmMasterReset() {
+  confirmAction('Reset entire system?', 'This clears every room usage total, limit and the full activity log. This cannot be undone.', () => {
+    Object.keys(roomsConfig).forEach(r => db.ref('rooms/' + r).update({ current_units: 0, manual_cutoff: false, allocated_units: 0, max_watt_limit: 0 }));
+    db.ref('allocation_logs').remove();
+    showToast('System reset complete', 'success');
+  });
+}
+function confirmRemoveRoom(roomId) {
+  confirmAction('Remove this room?', `"${roomsConfig[roomId].name}" will be removed from the dashboard. Historical logs are kept. The ESP32 device will keep reporting data even though the panel is hidden.`, () => {
+    db.ref('system/rooms/' + roomId).remove();
+    showToast('Room removed', 'info');
+  });
+}
+
+// ============ ADD ROOM ============
+function openAddRoom() { document.getElementById('newRoomId').value = ''; document.getElementById('newRoomName').value = ''; openModal('addRoomModal'); }
+function submitAddRoom() {
+  const id = document.getElementById('newRoomId').value.trim();
+  const name = document.getElementById('newRoomName').value.trim();
+  if (!id || !name) { showToast('Enter both a room ID and display name', 'error'); return; }
+  if (roomsConfig[id]) { showToast('That room ID already exists', 'error'); return; }
+  db.ref('system/rooms/' + id).set({ name });
+  closeModal('addRoomModal');
+  showToast(`${name} added`, 'success');
+}
+
+// ============ SETTINGS ============
+function openSettings() {
+  document.getElementById('settingsCurrency').value = settings.currency;
+  document.getElementById('settingsRate').value = settings.rate || '';
+  openModal('settingsModal');
+}
+function submitSettings() {
+  const currency = document.getElementById('settingsCurrency').value.trim() || '৳';
+  const rate = parseFloat(document.getElementById('settingsRate').value) || 0;
+  db.ref('system/settings').set({ currency, rate });
+  closeModal('settingsModal');
+  showToast('Billing settings saved', 'success');
+}
+
+// ============ LOGGING ============
+function writeLog(room, type, val) {
+  const now = new Date();
+  const timeStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+  db.ref('allocation_logs').push({
+    timestamp: firebase.database.ServerValue.TIMESTAMP,
+    time: timeStr, room, type, units: val
+  });
+}
+function populateLogRoomFilter() {
+  const sel = document.getElementById('logRoomFilter');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">All rooms</option>' +
+    Object.keys(roomsConfig).map(id => `<option value="${id}">${roomsConfig[id].name}</option>`).join('');
+  sel.value = current;
+}
+function listenToLogs() {
+  db.ref('allocation_logs').orderByChild('timestamp').limitToLast(200).on('value', snap => {
+    Object.keys(allLogs).forEach(k => delete allLogs[k]);
+    snap.forEach(child => { allLogs[child.key] = child.val(); });
+    renderLogs();
+  });
+}
+function renderLogs() {
+  const roomFilter = document.getElementById('logRoomFilter').value;
+  const search = document.getElementById('logSearch').value.toLowerCase();
+  const tbody = document.getElementById('logBody');
+  tbody.innerHTML = '';
+  const entries = Object.values(allLogs)
+    .filter(l => (!roomFilter || l.room === roomFilter))
+    .filter(l => !search || (l.type + ' ' + l.units + ' ' + l.room).toLowerCase().includes(search))
+    .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+    .slice(0, 10);
+
+  document.getElementById('totalLogs').innerText = Object.keys(allLogs).length;
+
+  if (entries.length === 0) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="4">No activity recorded yet.</td></tr>';
+    return;
+  }
+  entries.forEach(log => {
+    const roomName = (roomsConfig[log.room] && roomsConfig[log.room].name) || log.room;
+    tbody.insertAdjacentHTML('beforeend', `<tr>
+      <td>${log.time}</td>
+      <td style="color:var(--cyan); font-weight:600;">${roomName}</td>
+      <td>${log.type}</td>
+      <td>${log.units}</td>
+    </tr>`);
+  });
+}
+function exportLogsCSV() {
+  const rows = [['Time', 'Room', 'Action', 'Value']];
+  Object.values(allLogs).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)).forEach(l => {
+    const roomName = (roomsConfig[l.room] && roomsConfig[l.room].name) || l.room;
+    rows.push([l.time, roomName, l.type, l.units]);
+  });
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `gridwatch-log-${Date.now()}.csv`;
+  a.click();
+  showToast('Log exported', 'success');
+}
+</script>
 </body>
 </html>
