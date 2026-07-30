@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hall Power Control · Student Dashboard</title>
+    <title>Hall Power Control · Admin Panel</title>
 
-    <!-- Firebase -->
+    <!-- Firebase SDK v8 -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-    <!-- Fonts & icons -->
+    <!-- Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -18,7 +18,8 @@
         :root {
             --bg: #0a0f16;
             --surface: #141b23;
-            --border: rgba(148,197,224,0.12);
+            --surface-card: rgba(0, 0, 0, 0.25);
+            --border: rgba(148, 197, 224, 0.12);
             --text: #e6edf3;
             --text-dim: #8896a6;
             --cyan: #22d3ee;
@@ -29,7 +30,9 @@
             --font-display: 'Space Grotesk', sans-serif;
             --font-mono: 'IBM Plex Mono', monospace;
         }
+
         * { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
             font-family: var(--font-display);
             background: var(--bg);
@@ -40,24 +43,44 @@
             justify-content: center;
             padding: 20px;
         }
+
         .dashboard {
             width: 100%;
-            max-width: 480px;
+            max-width: 540px;
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: var(--radius);
             padding: 28px 24px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
         }
+
         .header {
             display: flex;
             align-items: center;
-            gap: 12px;
+            justify-content: space-between;
             margin-bottom: 24px;
         }
-        .header i { font-size: 28px; color: var(--cyan); }
-        .header h2 { font-size: 20px; font-weight: 700; }
-        .header .by { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title i { font-size: 28px; color: var(--cyan); }
+        .header-title h2 { font-size: 20px; font-weight: 700; }
+        .header-title .by { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+        .admin-badge {
+            background: rgba(34, 211, 238, 0.1);
+            color: var(--cyan);
+            border: 1px solid rgba(34, 211, 238, 0.3);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
 
         .room-select {
             display: flex;
@@ -67,14 +90,27 @@
             font-size: 13px;
             color: var(--text-dim);
         }
+
         .room-select select {
             background: rgba(0,0,0,0.4);
             border: 1px solid var(--border);
             color: #fff;
-            padding: 6px 12px;
+            padding: 8px 14px;
             border-radius: 8px;
             font-family: var(--font-mono);
             cursor: pointer;
+            outline: none;
+        }
+
+        .status-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 12px 16px;
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
         }
 
         .status-badge {
@@ -83,88 +119,207 @@
             border-radius: 20px;
             font-size: 12px;
             font-weight: 600;
-            margin-bottom: 18px;
         }
         .status-badge.on { background: rgba(52,211,153,0.15); color: var(--green); border: 1px solid rgba(52,211,153,0.3); }
         .status-badge.off { background: rgba(248,113,113,0.15); color: var(--red); border: 1px solid rgba(248,113,113,0.3); }
 
         .grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
             margin-bottom: 20px;
         }
+
         .metric {
-            background: rgba(0,0,0,0.2);
+            background: var(--surface-card);
             border: 1px solid var(--border);
             border-radius: 10px;
             padding: 12px;
             text-align: center;
         }
+
         .metric .m-label { font-size: 10px; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.06em; }
-        .metric .m-value { font-family: var(--font-mono); font-size: 20px; font-weight: 600; margin-top: 6px; }
-        .m-value small { font-size: 12px; color: var(--text-dim); font-weight: 400; }
+        .metric .m-value { font-family: var(--font-mono); font-size: 18px; font-weight: 600; margin-top: 6px; }
 
         .progress-section { margin-bottom: 14px; }
         .progress-header { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
-        .progress-bar { height: 10px; background: rgba(255,255,255,0.08); border-radius: 5px; overflow: hidden; }
-        .progress-fill { height: 100%; border-radius: 5px; transition: width 0.4s; background: var(--green); width: 0%; }
+        .progress-bar { height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 4px; transition: width 0.4s; background: var(--green); width: 0%; }
         .progress-fill.warn { background: var(--amber); }
         .progress-fill.danger { background: var(--red); }
 
-        .remaining-info {
-            text-align: center;
-            font-family: var(--font-mono);
-            font-size: 15px;
-            margin: 18px 0 12px;
+        /* ================= ADMIN CONTROLS SECTION ================= */
+        .section-title {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
             color: var(--cyan);
-            font-weight: 600;
+            margin: 24px 0 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
         }
 
-        .alert {
-            display: none;
-            background: rgba(248,113,113,0.15);
-            border: 1px solid rgba(248,113,113,0.3);
-            border-radius: 8px;
-            padding: 10px 14px;
-            margin: 16px 0;
-            font-size: 13px;
-            color: var(--red);
+        .admin-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
         }
-        .alert i { margin-right: 6px; }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .control-label {
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .control-label small {
+            display: block;
+            font-size: 11px;
+            color: var(--text-dim);
+            font-weight: 400;
+        }
+
+        /* Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 26px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(255,255,255,0.1);
+            transition: .3s;
+            border-radius: 26px;
+            border: 1px solid var(--border);
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: var(--text-dim);
+            transition: .3s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: rgba(248, 113, 113, 0.2); border-color: var(--red); }
+        input:checked + .slider:before { transform: translateX(22px); background-color: var(--red); }
+
+        /* Input Group */
+        .input-group {
+            display: flex;
+            gap: 8px;
+            width: 180px;
+        }
+        .input-group input {
+            width: 100%;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 6px 10px;
+            color: #fff;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            outline: none;
+        }
+        .input-group input:focus { border-color: var(--cyan); }
+
+        .btn {
+            background: var(--cyan);
+            color: #000;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            white-space: nowrap;
+        }
+        .btn:hover { opacity: 0.85; }
+        .btn-danger { background: var(--red); color: #fff; }
+        .btn-secondary { background: rgba(255,255,255,0.1); color: var(--text); border: 1px solid var(--border); }
+
+        .toast {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--surface);
+            border: 1px solid var(--cyan);
+            color: var(--cyan);
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            z-index: 100;
+        }
 
         .footer { text-align: center; font-size: 11px; color: var(--text-dim); margin-top: 20px; border-top: 1px solid var(--border); padding-top: 12px; }
     </style>
 </head>
 <body>
+
     <div class="dashboard">
+        <!-- Header -->
         <div class="header">
-            <i class="fa-solid fa-bolt"></i>
-            <div>
-                <h2>Hall Power Control</h2>
-                <div class="by">IRZA Labs · Student</div>
+            <div class="header-title">
+                <i class="fa-solid fa-user-shield"></i>
+                <div>
+                    <h2>Power Control</h2>
+                    <div class="by">IRZA Labs Management</div>
+                </div>
             </div>
+            <span class="admin-badge">ADMIN</span>
         </div>
 
+        <!-- Room Selector -->
         <div class="room-select">
-            <span>Viewing room</span>
+            <span>Select Room:</span>
             <select id="roomSelector" onchange="changeRoom()">
-                <option value="room2" selected>Room 02</option>
-                <option value="room1">Room 01</option>
+                <option value="room1" selected>Room 01</option>
+                <option value="room2">Room 02</option>
             </select>
         </div>
 
-        <div class="status-badge off" id="statusBadge">OFF</div>
-
-        <div class="grid">
-            <div class="metric"><div class="m-label">Current (A)</div><div class="m-value" id="currentVal">0.00</div></div>
-            <div class="metric"><div class="m-label">Voltage (V)</div><div class="m-value" id="voltageVal">0.0</div></div>
-            <div class="metric"><div class="m-label">Power (W)</div><div class="m-value" id="powerVal">0</div></div>
-            <div class="metric"><div class="m-label">Consumed (kWh)</div><div class="m-value" id="consumedVal">0.00</div></div>
-            <div class="metric"><div class="m-label">Allocated (kWh)</div><div class="m-value" id="allocatedVal">0.00</div></div>
-            <div class="metric"><div class="m-label">Watt Limit (W)</div><div class="m-value" id="wattLimitVal">0</div></div>
+        <!-- Real-Time Status -->
+        <div class="status-container">
+            <span style="font-size: 13px; color: var(--text-dim);">Device Status:</span>
+            <div class="status-badge off" id="statusBadge">OFF</div>
         </div>
 
+        <!-- Metrics Grid -->
+        <div class="grid">
+            <div class="metric"><div class="m-label">Voltage</div><div class="m-value"><span id="voltageVal">0.0</span> <small>V</small></div></div>
+            <div class="metric"><div class="m-label">Current</div><div class="m-value"><span id="currentVal">0.00</span> <small>A</small></div></div>
+            <div class="metric"><div class="m-label">Power</div><div class="m-value"><span id="powerVal">0</span> <small>W</small></div></div>
+            <div class="metric"><div class="m-label">Consumed</div><div class="m-value"><span id="consumedVal">0.00</span> <small>kWh</small></div></div>
+            <div class="metric"><div class="m-label">Allocated</div><div class="m-value"><span id="allocatedVal">0.00</span> <small>kWh</small></div></div>
+            <div class="metric"><div class="m-label">Watt Limit</div><div class="m-value"><span id="wattLimitVal">0</span> <small>W</small></div></div>
+        </div>
+
+        <!-- Progress Bars -->
         <div class="progress-section">
             <div class="progress-header"><span>Watt usage</span><span id="wattPercent">0%</span></div>
             <div class="progress-bar"><div class="progress-fill" id="wattBar"></div></div>
@@ -174,16 +329,63 @@
             <div class="progress-bar"><div class="progress-fill" id="unitBar"></div></div>
         </div>
 
-        <div class="remaining-info" id="remainingText">Remaining: 0.00 kWh</div>
+        <!-- Admin Controls Section -->
+        <div class="section-title"><i class="fa-solid fa-sliders"></i> Admin Controls</div>
 
-        <div class="alert" id="overloadAlert">
-            <i class="fa-solid fa-triangle-exclamation"></i> <span id="alertMessage"></span>
+        <div class="admin-controls">
+            <!-- Cutoff Toggle -->
+            <div class="control-row">
+                <div class="control-label">
+                    Manual Cutoff
+                    <small>Force disconnect room relay</small>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="cutoffToggle" onchange="toggleManualCutoff()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <!-- Set Allocated Units -->
+            <div class="control-row">
+                <div class="control-label">
+                    Allocated Units
+                    <small>Maximum allowed (kWh)</small>
+                </div>
+                <div class="input-group">
+                    <input type="number" step="0.1" id="allocatedInput" placeholder="kWh">
+                    <button class="btn" onclick="updateAllocatedUnits()">Set</button>
+                </div>
+            </div>
+
+            <!-- Set Max Watt Limit -->
+            <div class="control-row">
+                <div class="control-label">
+                    Watt Limit
+                    <small>Max load threshold (W)</small>
+                </div>
+                <div class="input-group">
+                    <input type="number" step="10" id="wattLimitInput" placeholder="Watts">
+                    <button class="btn" onclick="updateWattLimit()">Set</button>
+                </div>
+            </div>
+
+            <!-- Reset Energy Counter -->
+            <div class="control-row" style="margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--border);">
+                <div class="control-label">
+                    Reset Usage
+                    <small>Zero out consumed kWh counter</small>
+                </div>
+                <button class="btn btn-secondary" onclick="resetConsumedUnits()"><i class="fa-solid fa-rotate-right"></i> Reset kWh</button>
+            </div>
         </div>
 
-        <div class="footer">IRZA Labs · Hall Power Control</div>
+        <div class="footer">IRZA Labs Admin Portal · Hall Control System</div>
     </div>
 
+    <div class="toast" id="toastMsg">Updated successfully!</div>
+
     <script>
+        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyC8NcbOPzhbUnm9NxOZyzdEJSLk_LOGYcc",
             authDomain: "irza-labs.firebaseapp.com",
@@ -196,47 +398,25 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        let currentRoom = 'room2';
+        let currentRoom = 'room1';
         let roomRef = null;
-        let overloadStart = null;
-        let audioCtx = null;
 
-        // Change room
         function changeRoom() {
             currentRoom = document.getElementById('roomSelector').value;
             loadRoom(currentRoom);
         }
 
-        // Listen to a specific room
         function loadRoom(roomId) {
             if (roomRef) roomRef.off();
             roomRef = db.ref('rooms/' + roomId);
             roomRef.on('value', snap => {
                 const data = snap.val();
-                if (!data) {
-                    showDisconnected();
-                    return;
-                }
-                updateUI(roomId, data);
+                if (!data) return;
+                updateUI(data);
             });
         }
 
-        function showDisconnected() {
-            document.getElementById('statusBadge').textContent = 'OFFLINE';
-            document.getElementById('statusBadge').className = 'status-badge off';
-            document.getElementById('currentVal').textContent = '0.00';
-            document.getElementById('voltageVal').textContent = '0.0';
-            document.getElementById('powerVal').textContent = '0';
-            document.getElementById('consumedVal').textContent = '0.00';
-            document.getElementById('allocatedVal').textContent = '0.00';
-            document.getElementById('wattLimitVal').textContent = '0';
-            document.getElementById('remainingText').textContent = 'Remaining: 0.00 kWh';
-            document.getElementById('wattBar').style.width = '0%';
-            document.getElementById('unitBar').style.width = '0%';
-            document.getElementById('overloadAlert').style.display = 'none';
-        }
-
-        function updateUI(roomId, data) {
+        function updateUI(data) {
             const status = data.status || 'OFF';
             const power = parseFloat(data.power) || 0;
             const voltage = parseFloat(data.voltage) || 0;
@@ -244,23 +424,22 @@
             const consumed = parseFloat(data.current_units) || 0;
             const allocated = parseFloat(data.allocated_units) || 0;
             const maxWatt = parseFloat(data.max_watt_limit) || 0;
-            const remaining = allocated - consumed;
             const manualCutoff = data.manual_cutoff === true;
 
             // Status badge
             const badge = document.getElementById('statusBadge');
             if (manualCutoff) {
-                badge.textContent = 'CUT OFF';
+                badge.textContent = 'CUT OFF (ADMIN)';
                 badge.className = 'status-badge off';
             } else if (status.includes('ON')) {
-                badge.textContent = status;
+                badge.textContent = 'ON';
                 badge.className = 'status-badge on';
             } else {
                 badge.textContent = status;
                 badge.className = 'status-badge off';
             }
 
-            // Metrics
+            // Update Metrics
             document.getElementById('currentVal').textContent = current.toFixed(2);
             document.getElementById('voltageVal').textContent = voltage.toFixed(1);
             document.getElementById('powerVal').textContent = power.toFixed(0);
@@ -268,7 +447,10 @@
             document.getElementById('allocatedVal').textContent = allocated.toFixed(2);
             document.getElementById('wattLimitVal').textContent = maxWatt.toFixed(0);
 
-            // Progress bars
+            // Sync Cutoff Toggle switch state without re-triggering event
+            document.getElementById('cutoffToggle').checked = manualCutoff;
+
+            // Progress Bars
             const wattPct = maxWatt > 0 ? Math.min(100, (power / maxWatt) * 100) : 0;
             document.getElementById('wattPercent').textContent = Math.round(wattPct) + '%';
             const wattBar = document.getElementById('wattBar');
@@ -280,66 +462,58 @@
             const unitBar = document.getElementById('unitBar');
             unitBar.style.width = unitPct + '%';
             unitBar.className = 'progress-fill' + (unitPct > 90 ? ' danger' : unitPct > 70 ? ' warn' : '');
+        }
 
-            // Remaining
-            document.getElementById('remainingText').textContent = `Remaining: ${remaining.toFixed(2)} kWh`;
+        // ================= ADMIN ACTIONS =================
 
-            // Overload warning & 5-second timer
-            const isOverloaded = maxWatt > 0 && power > maxWatt && status.includes('ON') && !manualCutoff;
-            const alertDiv = document.getElementById('overloadAlert');
-            if (isOverloaded) {
-                if (!overloadStart) {
-                    overloadStart = Date.now();
-                }
-                const elapsed = ((Date.now() - overloadStart) / 1000).toFixed(1);
-                document.getElementById('alertMessage').textContent = `Overload! Exceeded ${maxWatt}W. Shutdown in ${(5 - elapsed).toFixed(0)}s`;
-                alertDiv.style.display = 'block';
+        function toggleManualCutoff() {
+            const isCutoff = document.getElementById('cutoffToggle').checked;
+            db.ref(`rooms/${currentRoom}/manual_cutoff`).set(isCutoff)
+                .then(() => showToast(isCutoff ? 'Cutoff Activated!' : 'Cutoff Deactivated!'))
+                .catch(err => alert('Error updating cutoff: ' + err.message));
+        }
 
-                // Beep after 5 seconds (browser-side)
-                if (Date.now() - overloadStart >= 5000) {
-                    playBeep();
-                }
-            } else {
-                overloadStart = null;
-                alertDiv.style.display = 'none';
+        function updateAllocatedUnits() {
+            const val = parseFloat(document.getElementById('allocatedInput').value);
+            if (isNaN(val) || val < 0) return alert('Enter a valid allocated kWh value');
+
+            db.ref(`rooms/${currentRoom}/allocated_units`).set(val)
+                .then(() => {
+                    showToast(`Allocated units set to ${val} kWh`);
+                    document.getElementById('allocatedInput').value = '';
+                })
+                .catch(err => alert('Error updating allocated units: ' + err.message));
+        }
+
+        function updateWattLimit() {
+            const val = parseFloat(document.getElementById('wattLimitInput').value);
+            if (isNaN(val) || val < 0) return alert('Enter a valid Watt limit');
+
+            db.ref(`rooms/${currentRoom}/max_watt_limit`).set(val)
+                .then(() => {
+                    showToast(`Watt limit set to ${val} W`);
+                    document.getElementById('wattLimitInput').value = '';
+                })
+                .catch(err => alert('Error updating watt limit: ' + err.message));
+        }
+
+        function resetConsumedUnits() {
+            if (confirm(`Reset consumed kWh counter to 0.00 for ${currentRoom}?`)) {
+                db.ref(`rooms/${currentRoom}/current_units`).set(0.0)
+                    .then(() => showToast('Usage units reset to 0.00 kWh'))
+                    .catch(err => alert('Error resetting units: ' + err.message));
             }
         }
 
-        // Simple beep using Web Audio API
-        function playBeep() {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'square';
-            osc.frequency.value = 800;
-            gain.gain.value = 0.1;
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            setTimeout(() => osc.stop(), 200);
+        function showToast(msg) {
+            const toast = document.getElementById('toastMsg');
+            toast.textContent = msg;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 2500);
         }
 
-        // Overload timer checker (updates countdown)
-        setInterval(() => {
-            if (overloadStart && document.getElementById('overloadAlert').style.display !== 'none') {
-                const data = roomDataCache || {};
-                const maxWatt = parseFloat(data.max_watt_limit) || 0;
-                const elapsed = ((Date.now() - overloadStart) / 1000).toFixed(1);
-                document.getElementById('alertMessage').textContent = `Overload! Exceeded ${maxWatt}W. Shutdown in ${(5 - elapsed).toFixed(0)}s`;
-                if (Date.now() - overloadStart >= 5000) playBeep();
-            }
-        }, 500);
-
-        // Cache last room data for timer display
-        let roomDataCache = null;
-        const origUpdateUI = updateUI;
-        updateUI = function(roomId, data) {
-            roomDataCache = data;
-            origUpdateUI(roomId, data);
-        };
-
-        // Start with room2
-        loadRoom('room2');
+        // Initialize with Room 01
+        loadRoom('room1');
     </script>
 </body>
 </html>
