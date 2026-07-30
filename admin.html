@@ -212,11 +212,6 @@
             box-shadow: 0 10px 20px rgba(0,0,0,0.3);
         }
 
-        .footer-note {
-            text-align: center; margin-top: 30px; color: var(--text-dim);
-            font-size: 12px; border-top: 1px solid var(--border); padding-top: 16px;
-        }
-
         @media (max-width: 600px) {
             .rooms-grid { grid-template-columns: 1fr; }
             .metrics-grid { grid-template-columns: 1fr; }
@@ -264,7 +259,6 @@
         </div>
 
         <div class="rooms-grid" id="roomsContainer"></div>
-        <div class="footer-note">IRZA Labs · Buzzer on ESP32 hardware (pin near 5V)</div>
     </div>
 
     <div class="toast-container" id="toastHost"></div>
@@ -375,7 +369,7 @@
             setInterval(checkAllOverloads, 1000);
         }
 
-        // Build room card
+        // Build room card (with manual unit entry, breaker default ON)
         function buildRoomCard(roomId) {
             const name = roomsConfig[roomId].name;
             const card = document.createElement('div');
@@ -409,12 +403,26 @@
                     <input type="number" id="wattInput-${roomId}" placeholder="W">
                     <button onclick="setWattLimit('${roomId}')">Set</button>
                 </div>
+                <!-- Manual consumed unit entry -->
+                <div class="action-row" style="margin-top: 8px;">
+                    <input type="number" id="consumedInput-${roomId}" placeholder="kWh" step="0.01" style="width: 80px;">
+                    <button onclick="setConsumedUnits('${roomId}')">Set Consumed</button>
+                </div>
                 <div class="breaker-row">
                     <span class="breaker-label">Circuit breaker</span>
-                    <div class="toggle-switch off" id="breaker-${roomId}" onclick="toggleBreaker('${roomId}')"></div>
+                    <div class="toggle-switch on" id="breaker-${roomId}" onclick="toggleBreaker('${roomId}')"></div>
                 </div>
             `;
             document.getElementById('roomsContainer').appendChild(card);
+        }
+
+        // Set consumed units manually
+        function setConsumedUnits(roomId) {
+            const val = parseFloat(document.getElementById(`consumedInput-${roomId}`).value);
+            if (!isNaN(val) && val >= 0) {
+                db.ref('rooms/' + roomId).update({ current_units: val });
+                toast(`${roomsConfig[roomId].name} consumed units set to ${val.toFixed(2)} kWh`);
+            }
         }
 
         // Update room card with real data
@@ -512,7 +520,7 @@
                         // Auto-shutdown: trigger manual_cutoff via Firebase
                         db.ref('rooms/' + roomId).update({ manual_cutoff: true });
                         toast(`${roomsConfig[roomId].name} auto‑shutdown after 5s overload!`, 'error');
-                        // The buzzer is handled by ESP32 hardware (pin near 5V)
+                        // Buzzer handled by ESP32 hardware
                     }
                     delete overloadTimers[roomId];
                 }
