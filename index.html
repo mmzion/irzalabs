@@ -3,111 +3,204 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Hall Electricity Management</title>
-    <!-- Firebase Compatibility Libraries -->
+    <title>Hall Power Control · Student Dashboard</title>
+
+    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <!-- FontAwesome for Icons -->
+
+    <!-- Fonts & icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <style>
         :root {
-            --primary: #3498db;
-            --success: #2ecc71;
-            --warning: #f1c40f;
-            --danger: #e74c3c;
-            --bg-gradient: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            --bg: #0a0f16;
+            --surface: #141b23;
+            --border: rgba(148,197,224,0.12);
+            --text: #e6edf3;
+            --text-dim: #8896a6;
+            --cyan: #22d3ee;
+            --amber: #fbbf24;
+            --red: #f87171;
+            --green: #34d399;
+            --radius: 14px;
+            --font-display: 'Space Grotesk', sans-serif;
+            --font-mono: 'IBM Plex Mono', monospace;
         }
-
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background: var(--bg-gradient); 
-            color: #f8fafc; 
-            margin: 0; 
-            padding: 20px; 
-            min-height: 95vh;
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: var(--font-display);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
             display: flex;
-            flex-direction: column;
-            justify-content: center;
             align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .dashboard {
+            width: 100%;
+            max-width: 480px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 28px 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        .header i { font-size: 28px; color: var(--cyan); }
+        .header h2 { font-size: 20px; font-weight: 700; }
+        .header .by { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+        .room-select {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+        .room-select select {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid var(--border);
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-family: var(--font-mono);
+            cursor: pointer;
         }
 
-        .glass-card { 
-            background: rgba(255, 255, 255, 0.06); 
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            max-width: 480px; 
-            width: 90%;
-            margin: 20px auto; 
-            padding: 35px 25px; 
-            border-radius: 20px; 
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3); 
-            transition: all 0.4s ease;
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 18px;
+        }
+        .status-badge.on { background: rgba(52,211,153,0.15); color: var(--green); border: 1px solid rgba(52,211,153,0.3); }
+        .status-badge.off { background: rgba(248,113,113,0.15); color: var(--red); border: 1px solid rgba(248,113,113,0.3); }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .metric {
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+        }
+        .metric .m-label { font-size: 10px; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.06em; }
+        .metric .m-value { font-family: var(--font-mono); font-size: 20px; font-weight: 600; margin-top: 6px; }
+        .m-value small { font-size: 12px; color: var(--text-dim); font-weight: 400; }
+
+        .progress-section { margin-bottom: 14px; }
+        .progress-header { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
+        .progress-bar { height: 10px; background: rgba(255,255,255,0.08); border-radius: 5px; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 5px; transition: width 0.4s; background: var(--green); width: 0%; }
+        .progress-fill.warn { background: var(--amber); }
+        .progress-fill.danger { background: var(--red); }
+
+        .remaining-info {
+            text-align: center;
+            font-family: var(--font-mono);
+            font-size: 15px;
+            margin: 18px 0 12px;
+            color: var(--cyan);
+            font-weight: 600;
         }
 
-        h1 { font-size: 28px; font-weight: 700; margin: 0 0 10px 0; background: linear-gradient(to right, #3498db, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .sub-text { color: #94a3b8; font-size: 14px; margin-bottom: 30px; }
-        .room-tag { background: rgba(52, 152, 219, 0.2); color: var(--primary); border: 1px solid rgba(52, 152, 219, 0.4); padding: 5px 16px; border-radius: 30px; font-size: 13px; font-weight: 600; display: inline-block; text-transform: uppercase; }
+        .alert {
+            display: none;
+            background: rgba(248,113,113,0.15);
+            border: 1px solid rgba(248,113,113,0.3);
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin: 16px 0;
+            font-size: 13px;
+            color: var(--red);
+        }
+        .alert i { margin-right: 6px; }
 
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 25px 0; }
-        .metric { background: rgba(255, 255, 255, 0.03); padding: 18px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.05); text-align: left; position: relative; overflow: hidden; }
-        .metric i { position: absolute; right: 15px; top: 18px; color: rgba(255,255,255,0.1); font-size: 22px; }
-        .metric label { font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 600; }
-        .metric div { font-size: 22px; font-weight: 700; margin-top: 8px; color: #fff; }
+        .btn-request {
+            width: 100%;
+            background: var(--amber);
+            color: #1e293b;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: filter 0.15s;
+            margin-top: 8px;
+        }
+        .btn-request:hover { filter: brightness(1.1); }
+        .btn-request:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        .progress-container { margin: 25px 0 15px 0; text-align: left; }
-        .progress-labels { display: flex; justify-content: space-between; font-size: 12px; color: #94a3b8; margin-bottom: 8px; }
-        .progress-bar-bg { background: rgba(255, 255, 255, 0.1); height: 10px; border-radius: 10px; overflow: hidden; }
-        .progress-bar-fill { background: linear-gradient(90deg, #3498db, #2ecc71); height: 100%; width: 0%; transition: width 0.5s ease; border-radius: 10px; }
-
-        .status { font-weight: 700; padding: 12px; border-radius: 10px; margin-top: 25px; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .status.ON { background: rgba(46, 204, 113, 0.15); color: #2ecc71; border: 1px solid rgba(46, 204, 113, 0.3); }
-        .status.OFF { background: rgba(231, 76, 60, 0.15); color: #e74c3c; border: 1px solid rgba(231, 76, 60, 0.3); animation: pulse 1.5s infinite; }
-        
-        .alert-banner { display: none; background: rgba(241, 196, 15, 0.15); color: #f1c40f; border: 1px solid rgba(241, 196, 15, 0.3); padding: 10px; border-radius: 10px; margin-top: 15px; font-size: 13px; font-weight: 600; text-align:center; }
-
-        .btn-room { background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255,255,255,0.1); color: #fff; font-size: 18px; font-weight: 600; padding: 22px; margin: 15px 0; border-radius: 15px; width: 100%; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: space-between; }
-        .btn-room:hover { background: rgba(52, 152, 219, 0.15); border-color: var(--primary); transform: translateY(-3px); }
-        .btn-back { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #94a3b8; padding: 10px 20px; border-radius: 8px; cursor: pointer; margin-top: 25px; font-size: 13px; }
-
-        @keyframes pulse { 0% { opacity: 0.8; } 50% { opacity: 0.4; } 100% { opacity: 0.8; } }
+        .footer { text-align: center; font-size: 11px; color: var(--text-dim); margin-top: 20px; border-top: 1px solid var(--border); padding-top: 12px; }
     </style>
 </head>
 <body>
+    <div class="dashboard">
+        <div class="header">
+            <i class="fa-solid fa-bolt"></i>
+            <div>
+                <h2>Hall Power Control</h2>
+                <div class="by">IRZA Labs · Student</div>
+            </div>
+        </div>
 
-    <!-- হোম স্ক্রিন -->
-    <div id="homeScreen" class="glass-card" style="display: none;">
-        <h1><i class="fa-solid fa-bolt"></i> Smart Hall Energy</h1>
-        <div class="sub-text">Real-time room electricity monitoring portal</div>
-        <button class="btn-room" onclick="selectRoom('room1')">
-            <span><i class="fa-solid fa-door-closed" style="margin-right: 12px;"></i> Room 01 Dashboard</span><i class="fa-solid fa-chevron-right"></i>
-        </button>
-        <button class="btn-room" onclick="selectRoom('room2')">
-            <span><i class="fa-solid fa-door-closed" style="margin-right: 12px;"></i> Room 02 Dashboard</span><i class="fa-solid fa-chevron-right"></i>
-        </button>
-    </div>
+        <div class="room-select">
+            <span>Viewing room</span>
+            <select id="roomSelector" onchange="changeRoom()">
+                <option value="room2" selected>Room 02</option>
+                <option value="room1">Room 01</option>
+            </select>
+        </div>
 
-    <!-- ড্যাশবোর্ড কার্ড -->
-    <div id="dashboardCard" class="glass-card" style="display: none;">
-        <h1 id="roomTitle">Room Status</h1>
-        <span class="room-tag"><i class="fa-solid fa-user-grad"></i> Live Telemetry</span>
-
-        <div id="alertBanner" class="alert-banner"></div>
+        <div class="status-badge off" id="statusBadge">OFF</div>
 
         <div class="grid">
-            <div class="metric"><i class="fa-solid fa-circle-check"></i><label>Allocated Units</label><div id="allocUnits">0.00 kWh</div></div>
-            <div class="metric"><i class="fa-solid fa-chart-simple"></i><label>Current Used</label><div id="currUnits">0.00 kWh</div></div>
-            <div class="metric"><i class="fa-solid fa-plug"></i><label>Live Load</label><div id="livePower">0 W</div></div>
-            <div class="metric"><i class="fa-solid fa-gauge-high"></i><label>Voltage</label><div id="voltage">0 V</div></div>
+            <div class="metric"><div class="m-label">Current (A)</div><div class="m-value" id="currentVal">0.00</div></div>
+            <div class="metric"><div class="m-label">Voltage (V)</div><div class="m-value" id="voltageVal">0.0</div></div>
+            <div class="metric"><div class="m-label">Power (W)</div><div class="m-value" id="powerVal">0</div></div>
+            <div class="metric"><div class="m-label">Consumed (kWh)</div><div class="m-value" id="consumedVal">0.00</div></div>
+            <div class="metric"><div class="m-label">Allocated (kWh)</div><div class="m-value" id="allocatedVal">0.00</div></div>
+            <div class="metric"><div class="m-label">Watt Limit (W)</div><div class="m-value" id="wattLimitVal">0</div></div>
         </div>
 
-        <div class="progress-container">
-            <div class="progress-labels"><span id="remainingUnits">Remaining: 0.00 kWh</span><span id="progressPercent">0% Used</span></div>
-            <div class="progress-bar-bg"><div id="progressBar" class="progress-bar-fill"></div></div>
+        <div class="progress-section">
+            <div class="progress-header"><span>Watt usage</span><span id="wattPercent">0%</span></div>
+            <div class="progress-bar"><div class="progress-fill" id="wattBar"></div></div>
+        </div>
+        <div class="progress-section">
+            <div class="progress-header"><span>Unit usage</span><span id="unitPercent">0%</span></div>
+            <div class="progress-bar"><div class="progress-fill" id="unitBar"></div></div>
         </div>
 
-        <div id="statusBox" class="status ON"><i class="fa-solid fa-circle-dot"></i> STATUS: CONNECTING...</div>
-        <button class="btn-back" onclick="goBack()"><i class="fa-solid fa-arrow-left"></i> Back to Rooms</button>
+        <div class="remaining-info" id="remainingText">Remaining: 0.00 kWh</div>
+
+        <div class="alert" id="overloadAlert">
+            <i class="fa-solid fa-triangle-exclamation"></i> <span id="alertMessage"></span>
+        </div>
+
+        <button class="btn-request" id="requestBtn" onclick="requestWattBoost()">
+            <i class="fa-solid fa-paper-plane"></i> Request +200W
+        </button>
+
+        <div class="footer">Buzzer sounds on hardware · auto‑cut after 5s overload</div>
     </div>
 
     <script>
@@ -120,89 +213,175 @@
             messagingSenderId: "269557073409",
             appId: "1:269557073409:web:4c2977681884d733f62200"
         };
-        
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        let currentFirebaseRef = null;
 
-        const urlParams = new URLSearchParams(window.location.search);
-        let initialRoom = urlParams.get('room');
-        
-        if (initialRoom === 'room1' || initialRoom === 'room2') { loadRoomDashboard(initialRoom); } 
-        else { document.getElementById('homeScreen').style.display = 'block'; }
+        let currentRoom = 'room2';
+        let roomRef = null;
+        let overloadStart = null;
+        let audioCtx = null;
 
-        function selectRoom(roomName) {
-            window.history.pushState({room: roomName}, '', '?room=' + roomName);
-            loadRoomDashboard(roomName);
+        // Change room
+        function changeRoom() {
+            currentRoom = document.getElementById('roomSelector').value;
+            loadRoom(currentRoom);
         }
 
-        function loadRoomDashboard(roomName) {
-            document.getElementById('homeScreen').style.display = 'none';
-            document.getElementById('dashboardCard').style.display = 'block';
-            document.getElementById('roomTitle').innerHTML = `<i class="fa-solid fa-bolt"></i> ${roomName.toUpperCase()} Data`;
-
-            if (currentFirebaseRef) currentFirebaseRef.off();
-
-            currentFirebaseRef = db.ref('rooms/' + roomName);
-            currentFirebaseRef.on('value', (snapshot) => {
-                const data = snapshot.val();
-                if(data) {
-                    const allocated = data.allocated_units ? parseFloat(data.allocated_units) : 0;
-                    const current = data.current_units ? parseFloat(data.current_units) : 0;
-                    const power = data.power ? parseFloat(data.power) : 0;
-                    const maxWatt = data.max_watt_limit ? parseFloat(data.max_watt_limit) : 0;
-                    const voltage = data.voltage ? parseFloat(data.voltage) : 0;
-                    const roomStatus = data.status || "OFF";
-
-                    document.getElementById('allocUnits').innerText = allocated.toFixed(2) + " kWh";
-                    document.getElementById('currUnits').innerText = current.toFixed(2) + " kWh";
-                    document.getElementById('livePower').innerText = power.toFixed(1) + " W";
-                    document.getElementById('voltage').innerText = voltage.toFixed(1) + " V";
-                    
-                    let percentage = allocated > 0 ? (current / allocated) * 100 : 0;
-                    if (percentage > 100) percentage = 100;
-                    
-                    document.getElementById('progressPercent').innerText = percentage.toFixed(0) + "% Used";
-                    document.getElementById('remainingUnits').innerText = `Remaining: ${(allocated - current).toFixed(2)} kWh`;
-                    document.getElementById('progressBar').style.width = percentage + "%";
-
-                    // এলার্ট ব্যানার ম্যানেজমেন্ট (ওয়াট বা kWh পার হলে)
-                    const alertBanner = document.getElementById('alertBanner');
-                    if (maxWatt > 0 && power > maxWatt && roomStatus.includes("ON")) {
-                        alertBanner.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> OVERLOAD! Exceeded ${maxWatt}W! Shutdown in 5s!`;
-                        alertBanner.style.display = 'block';
-                    } else if (current > allocated && roomStatus.includes("ON")) {
-                        alertBanner.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Warning: Limit exceeded! Power cut-off in 5s!`;
-                        alertBanner.style.display = 'block';
-                    } else {
-                        alertBanner.style.display = 'none';
-                    }
-
-                    const statusBox = document.getElementById('statusBox');
-                    if(roomStatus.includes("ON")) {
-                        statusBox.innerHTML = `<i class="fa-solid fa-circle-check"></i> STATUS: ${roomStatus}`;
-                        statusBox.className = "status ON";
-                    } else {
-                        statusBox.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> STATUS: ${roomStatus}`;
-                        statusBox.className = "status OFF";
-                    }
+        // Listen to a specific room
+        function loadRoom(roomId) {
+            if (roomRef) roomRef.off();
+            roomRef = db.ref('rooms/' + roomId);
+            roomRef.on('value', snap => {
+                const data = snap.val();
+                if (!data) {
+                    showDisconnected();
+                    return;
                 }
+                updateUI(roomId, data);
             });
         }
 
-        function goBack() {
-            if (currentFirebaseRef) currentFirebaseRef.off();
-            window.history.pushState({}, '', window.location.pathname);
-            document.getElementById('dashboardCard').style.display = 'none';
-            document.getElementById('homeScreen').style.display = 'block';
+        function showDisconnected() {
+            document.getElementById('statusBadge').textContent = 'OFFLINE';
+            document.getElementById('statusBadge').className = 'status-badge off';
+            document.getElementById('currentVal').textContent = '0.00';
+            document.getElementById('voltageVal').textContent = '0.0';
+            document.getElementById('powerVal').textContent = '0';
+            document.getElementById('consumedVal').textContent = '0.00';
+            document.getElementById('allocatedVal').textContent = '0.00';
+            document.getElementById('wattLimitVal').textContent = '0';
+            document.getElementById('remainingText').textContent = 'Remaining: 0.00 kWh';
+            document.getElementById('wattBar').style.width = '0%';
+            document.getElementById('unitBar').style.width = '0%';
+            document.getElementById('overloadAlert').style.display = 'none';
         }
 
-        window.addEventListener('popstate', function() {
-            const params = new URLSearchParams(window.location.search);
-            let currentRoom = params.get('room');
-            if (currentRoom === 'room1' || currentRoom === 'room2') { loadRoomDashboard(currentRoom); } 
-            else { goBack(); }
-        });
+        function updateUI(roomId, data) {
+            const status = data.status || 'OFF';
+            const power = parseFloat(data.power) || 0;
+            const voltage = parseFloat(data.voltage) || 0;
+            const current = voltage > 0 ? power / voltage : 0;
+            const consumed = parseFloat(data.current_units) || 0;
+            const allocated = parseFloat(data.allocated_units) || 0;
+            const maxWatt = parseFloat(data.max_watt_limit) || 0;
+            const remaining = allocated - consumed;
+            const manualCutoff = data.manual_cutoff === true;
+
+            // Status badge
+            const badge = document.getElementById('statusBadge');
+            if (manualCutoff) {
+                badge.textContent = 'CUT OFF';
+                badge.className = 'status-badge off';
+            } else if (status.includes('ON')) {
+                badge.textContent = status;
+                badge.className = 'status-badge on';
+            } else {
+                badge.textContent = status;
+                badge.className = 'status-badge off';
+            }
+
+            // Metrics
+            document.getElementById('currentVal').textContent = current.toFixed(2);
+            document.getElementById('voltageVal').textContent = voltage.toFixed(1);
+            document.getElementById('powerVal').textContent = power.toFixed(0);
+            document.getElementById('consumedVal').textContent = consumed.toFixed(2);
+            document.getElementById('allocatedVal').textContent = allocated.toFixed(2);
+            document.getElementById('wattLimitVal').textContent = maxWatt.toFixed(0);
+
+            // Progress bars
+            const wattPct = maxWatt > 0 ? Math.min(100, (power / maxWatt) * 100) : 0;
+            document.getElementById('wattPercent').textContent = Math.round(wattPct) + '%';
+            const wattBar = document.getElementById('wattBar');
+            wattBar.style.width = wattPct + '%';
+            wattBar.className = 'progress-fill' + (wattPct > 90 ? ' danger' : wattPct > 70 ? ' warn' : '');
+
+            const unitPct = allocated > 0 ? Math.min(100, (consumed / allocated) * 100) : 0;
+            document.getElementById('unitPercent').textContent = Math.round(unitPct) + '%';
+            const unitBar = document.getElementById('unitBar');
+            unitBar.style.width = unitPct + '%';
+            unitBar.className = 'progress-fill' + (unitPct > 90 ? ' danger' : unitPct > 70 ? ' warn' : '');
+
+            // Remaining
+            document.getElementById('remainingText').textContent = `Remaining: ${remaining.toFixed(2)} kWh`;
+
+            // Overload warning & 5-second timer
+            const isOverloaded = maxWatt > 0 && power > maxWatt && status.includes('ON') && !manualCutoff;
+            const alertDiv = document.getElementById('overloadAlert');
+            if (isOverloaded) {
+                if (!overloadStart) {
+                    overloadStart = Date.now();
+                }
+                const elapsed = ((Date.now() - overloadStart) / 1000).toFixed(1);
+                document.getElementById('alertMessage').textContent = `Overload! Exceeded ${maxWatt}W. Shutdown in ${(5 - elapsed).toFixed(0)}s`;
+                alertDiv.style.display = 'block';
+
+                // Beep after 5 seconds (browser-side)
+                if (Date.now() - overloadStart >= 5000) {
+                    playBeep();
+                }
+            } else {
+                overloadStart = null;
+                alertDiv.style.display = 'none';
+            }
+        }
+
+        // Simple beep using Web Audio API
+        function playBeep() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'square';
+            osc.frequency.value = 800;
+            gain.gain.value = 0.1;
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            setTimeout(() => osc.stop(), 200);
+        }
+
+        // Request watt boost (writes to Firebase "requests" node)
+        function requestWattBoost() {
+            const btn = document.getElementById('requestBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
+            db.ref('requests/' + currentRoom).push({
+                type: 'watt_boost',
+                amount: 200,
+                timestamp: firebase.database.ServerValue.TIMESTAMP,
+                status: 'pending'
+            }).then(() => {
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Request sent!';
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Request +200W';
+                }, 3000);
+            }).catch(() => {
+                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Request +200W';
+                btn.disabled = false;
+            });
+        }
+
+        // Overload timer checker (updates countdown)
+        setInterval(() => {
+            if (overloadStart && document.getElementById('overloadAlert').style.display !== 'none') {
+                const data = roomDataCache || {};
+                const maxWatt = parseFloat(data.max_watt_limit) || 0;
+                const elapsed = ((Date.now() - overloadStart) / 1000).toFixed(1);
+                document.getElementById('alertMessage').textContent = `Overload! Exceeded ${maxWatt}W. Shutdown in ${(5 - elapsed).toFixed(0)}s`;
+                if (Date.now() - overloadStart >= 5000) playBeep();
+            }
+        }, 500);
+
+        // Cache last room data for timer display
+        let roomDataCache = null;
+        const origUpdateUI = updateUI;
+        updateUI = function(roomId, data) {
+            roomDataCache = data;
+            origUpdateUI(roomId, data);
+        };
+
+        // Start with room2
+        loadRoom('room2');
     </script>
 </body>
 </html>
