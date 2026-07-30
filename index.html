@@ -133,22 +133,6 @@
         }
         .alert i { margin-right: 6px; }
 
-        .btn-request {
-            width: 100%;
-            background: var(--amber);
-            color: #1e293b;
-            border: none;
-            border-radius: 8px;
-            padding: 12px;
-            font-weight: 700;
-            font-size: 14px;
-            cursor: pointer;
-            transition: filter 0.15s;
-            margin-top: 8px;
-        }
-        .btn-request:hover { filter: brightness(1.1); }
-        .btn-request:disabled { opacity: 0.5; cursor: not-allowed; }
-
         .footer { text-align: center; font-size: 11px; color: var(--text-dim); margin-top: 20px; border-top: 1px solid var(--border); padding-top: 12px; }
     </style>
 </head>
@@ -196,11 +180,7 @@
             <i class="fa-solid fa-triangle-exclamation"></i> <span id="alertMessage"></span>
         </div>
 
-        <button class="btn-request" id="requestBtn" onclick="requestWattBoost()">
-            <i class="fa-solid fa-paper-plane"></i> Request +200W
-        </button>
-
-        <div class="footer">Buzzer sounds on hardware · auto‑cut after 5s overload</div>
+        <div class="footer">IRZA Labs · Hall Power Control</div>
     </div>
 
     <script>
@@ -337,28 +317,6 @@
             gain.connect(audioCtx.destination);
             osc.start();
             setTimeout(() => osc.stop(), 200);
-        }
-
-        // Request watt boost (writes to Firebase "requests" node)
-        function requestWattBoost() {
-            const btn = document.getElementById('requestBtn');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
-            db.ref('requests/' + currentRoom).push({
-                type: 'watt_boost',
-                amount: 200,
-                timestamp: firebase.database.ServerValue.TIMESTAMP,
-                status: 'pending'
-            }).then(() => {
-                btn.innerHTML = '<i class="fa-solid fa-check"></i> Request sent!';
-                setTimeout(() => {
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Request +200W';
-                }, 3000);
-            }).catch(() => {
-                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Request +200W';
-                btn.disabled = false;
-            });
         }
 
         // Overload timer checker (updates countdown)
